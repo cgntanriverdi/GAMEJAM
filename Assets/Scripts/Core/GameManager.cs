@@ -32,8 +32,8 @@ public class GameManager : MonoBehaviour
     [Header("Test level (LevelManager devralana kadar)")]
     [SerializeField] private int _width            = 5;
     [SerializeField] private int _height           = 5;
-    [SerializeField] private int _minPathLength    = 8;
-    [SerializeField] private int _maxPathLength    = 20;
+    [SerializeField] private int _minPathLength    = 6;
+    [SerializeField] private int _maxPathLength    = 18;
     [SerializeField] private int _activeColorCount = 3;
 
     // ── Events (CheckpointManager ve HintManager dinler) ─────────────────────
