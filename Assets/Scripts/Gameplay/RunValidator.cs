@@ -101,9 +101,8 @@ public class RunValidator
         if (state.SelectedPath.Count <= 1)
             return new ValidationResult(MoveOutcome.InvalidCheckpointLocked);
 
-        // Checkpoint kilidi: son hücre locked index'in gerisine gidemez
-        int lastIndex = state.SelectedPath.Count - 1;
-        if (lastIndex <= state.CheckpointLockedLength)
+        // Checkpoint kilidi: undo sonrası path, CheckpointLockedLength'in altına inemez
+        if (state.SelectedPath.Count <= state.CheckpointLockedLength)
             return new ValidationResult(MoveOutcome.InvalidCheckpointLocked);
 
         return new ValidationResult(MoveOutcome.Valid);
