@@ -16,7 +16,14 @@ public sealed class PlayAreaRootLayout : MonoBehaviour
 
     private void OnValidate()
     {
-        ApplyLayout();
+#if UNITY_EDITOR
+        // OnValidate sırasında RectTransform.sizeDelta değiştirmek SendMessage'ı tetikler
+        // ve Unity bunu yasaklar; bir sonraki editor tick'ine erteleyerek uyarıyı gideririz.
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            if (this != null) ApplyLayout();
+        };
+#endif
     }
 
     private void OnRectTransformDimensionsChange()
