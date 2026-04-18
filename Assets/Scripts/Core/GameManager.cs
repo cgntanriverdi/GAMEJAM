@@ -32,8 +32,8 @@ public class GameManager : MonoBehaviour
     [Header("Test level (LevelManager devralana kadar)")]
     [SerializeField] private int _width            = 5;
     [SerializeField] private int _height           = 5;
-    [SerializeField] private int _minPathLength    = 8;
-    [SerializeField] private int _maxPathLength    = 20;
+    [SerializeField] private int _minPathLength    = 6;
+    [SerializeField] private int _maxPathLength    = 18;
     [SerializeField] private int _activeColorCount = 3;
 
     // ── Events (CheckpointManager ve HintManager dinler) ─────────────────────
@@ -112,10 +112,8 @@ public class GameManager : MonoBehaviour
         var startCoord = _solution.Cells[0];
         _runState = new PlayerRunState
         {
-            SelectedPath           = new List<GridCoord> { startCoord },
-            CurrentColorCounts     = new Dictionary<CellColor, int>(),
-            CheckpointLockedLength = 0,
-            CheckpointTriggered    = false
+            SelectedPath       = new List<GridCoord> { startCoord },
+            CurrentColorCounts = new Dictionary<CellColor, int>(),
         };
 
         // 6. UI güncelle
@@ -168,7 +166,6 @@ public class GameManager : MonoBehaviour
 
             case MoveOutcome.InvalidNotNeighbor:
             case MoveOutcome.InvalidAlreadyVisited:
-            case MoveOutcome.InvalidCheckpointLocked:
                 OnInvalidMove(result.Outcome);
                 break;
         }
@@ -201,14 +198,6 @@ public class GameManager : MonoBehaviour
         _counterPanel.Refresh(_runState.CurrentColorCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(newCurrent));
         OnUndoPerformed?.Invoke();
-    }
-
-    /// <summary>CheckpointManager tarafından set edilir (Plan §7.8 → §7.5).</summary>
-    public void SetCheckpointLock(int lockedLength)
-    {
-        if (_runState == null) return;
-        _runState.CheckpointLockedLength = lockedLength;
-        _runState.CheckpointTriggered    = true;
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
@@ -304,5 +293,4 @@ public class GameManager : MonoBehaviour
 
 // Kullanacak scriptler: SwipeInputController (TryMovePlayer çağrısı),
 //                       LevelManager (StartLevel çağrısı),
-//                       CheckpointManager (SetCheckpointLock),
 //                       HintManager (SetInputEnabled üzerinden)

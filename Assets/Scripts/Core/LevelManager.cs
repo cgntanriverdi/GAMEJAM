@@ -75,25 +75,26 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Tier tablosu:
-    ///   1-2  : 3×3, 3-4 adım,   2 renk
-    ///   3-4  : 4×4, 5-6 adım,   2 renk
-    ///   5-6  : 4×4, 7-9 adım,   3 renk
-    ///   7-8  : 5×5, 10-12 adım, 3 renk
-    ///   9-10 : 5×5, 13-15 adım, 4 renk
-    ///   11+  : 6×6, 16-20 adım, 4 renk
+    /// Tier tablosu — min/max = RENK hücresi sayısı (start ve end HARİÇ).
+    /// Toplam path uzunluğu = min/max + 2.
+    ///   1-2  : 3×3, 1-2 renk hücresi,   2 renk
+    ///   3-4  : 4×4, 3-4 renk hücresi,   2 renk
+    ///   5-6  : 4×4, 5-7 renk hücresi,   3 renk
+    ///   7-8  : 5×5, 8-10 renk hücresi,  3 renk
+    ///   9-10 : 5×5, 11-13 renk hücresi, 4 renk
+    ///   11+  : 6×6, 14-18 renk hücresi, 4 renk
     /// </summary>
     private static LevelDefinition BuildTierDefinition(int idx)
     {
         int level = idx + 1;
 
-        if (level <= 2)  return Make(idx, w: 3, h: 3, min: 3,  max: 4,  colors: 2);
-        if (level <= 4)  return Make(idx, w: 4, h: 4, min: 5,  max: 6,  colors: 2);
-        if (level <= 6)  return Make(idx, w: 4, h: 4, min: 7,  max: 9,  colors: 3);
-        if (level <= 8)  return Make(idx, w: 5, h: 5, min: 10, max: 12, colors: 3);
-        if (level <= 10) return Make(idx, w: 5, h: 5, min: 13, max: 15, colors: 4);
+        if (level <= 2)  return Make(idx, w: 3, h: 3, min: 1,  max: 2,  colors: 2);
+        if (level <= 4)  return Make(idx, w: 4, h: 4, min: 3,  max: 4,  colors: 2);
+        if (level <= 6)  return Make(idx, w: 4, h: 4, min: 5,  max: 7,  colors: 3);
+        if (level <= 8)  return Make(idx, w: 5, h: 5, min: 8,  max: 10, colors: 3);
+        if (level <= 10) return Make(idx, w: 5, h: 5, min: 11, max: 13, colors: 4);
 
-        return Make(idx, w: 6, h: 6, min: 16, max: 20, colors: 4);
+        return Make(idx, w: 6, h: 6, min: 14, max: 18, colors: 4);
     }
 
     private static LevelDefinition Make(int idx, int w, int h, int min, int max, int colors) =>
@@ -150,9 +151,14 @@ public class LevelManager : MonoBehaviour
 
         CellColor[] palette = BuildPalette(def.ActiveColorCount);
         var counts          = new Dictionary<CellColor, int>();
-        foreach (var c in palette) counts[c] = 0;
-        for (int i = 0; i < path.Count; i++)
-            counts[palette[i % palette.Length]]++;
+
+        // Sadece orta hücreler sayılır (start=0 ve end=son hariç)
+        for (int i = 1; i < path.Count - 1; i++)
+        {
+            var c = palette[(i - 1) % palette.Length];
+            counts.TryGetValue(c, out int prev);
+            counts[c] = prev + 1;
+        }
 
         return new PathSolution { Cells = path, TargetColorCounts = counts };
     }
