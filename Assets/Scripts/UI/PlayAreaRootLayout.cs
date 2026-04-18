@@ -16,7 +16,12 @@ public sealed class PlayAreaRootLayout : MonoBehaviour
 
     private void OnValidate()
     {
-        ApplyLayout();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            if (this != null) ApplyLayout();
+        };
+#endif
     }
 
     private void OnRectTransformDimensionsChange()
