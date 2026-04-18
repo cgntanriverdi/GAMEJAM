@@ -15,6 +15,14 @@ public class GridManager : MonoBehaviour
     private float cellSize;    // Initialize'da hesaplanır
     private float cellSpacing; // Initialize'da hesaplanır
 
+    public float CellSize => cellSize;
+
+    public Sprite GetCellSprite(CellColor color)
+    {
+        var view = cellPrefab != null ? cellPrefab.GetComponent<CellView>() : null;
+        return view != null ? view.GetSprite(color) : null;
+    }
+
     [Header("End sprite")]
     [SerializeField] private Sprite boneSprite;
 

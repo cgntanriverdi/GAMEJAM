@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,8 +15,11 @@ public class CounterPanelUI : MonoBehaviour
     // Renk → entry eşlemesi; Initialize sonrası dolu
     private readonly Dictionary<CellColor, ColorCountEntry> _entries = new();
     private Dictionary<CellColor, int> _targets;
+    private Func<CellColor, Sprite> _spriteSource;
 
     // ── Setup ─────────────────────────────────────────────────────────────────
+
+    public void SetSpriteSource(Func<CellColor, Sprite> source) => _spriteSource = source;
 
     /// <summary>
     /// Level başında GameManager tarafından çağrılır.
@@ -34,7 +38,7 @@ public class CounterPanelUI : MonoBehaviour
         foreach (var kvp in targets)
         {
             var entry = Instantiate(_entryPrefab, _container);
-            entry.Initialize(kvp.Key);
+            entry.Initialize(kvp.Key, _spriteSource?.Invoke(kvp.Key));
             entry.SetCount(0, kvp.Value);
             _entries[kvp.Key] = entry;
         }
@@ -92,5 +96,5 @@ public class CounterPanelUI : MonoBehaviour
     }
 }
 
-// Kullanacak scriptler: GameManager (Initialize, Refresh, TriggerOverflowFeedback,
+// Kullanacak scriptler: GameManager (SetSpriteSource, Initialize, Refresh, TriggerOverflowFeedback,
 //                                    TriggerIncompleteEndFeedback, SetAllComplete)

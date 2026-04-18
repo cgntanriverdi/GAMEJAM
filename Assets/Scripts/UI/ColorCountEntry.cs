@@ -22,11 +22,19 @@ public class ColorCountEntry : MonoBehaviour
 
     // ── Setup ─────────────────────────────────────────────────────────────────
 
-    public void Initialize(CellColor color)
+    public void Initialize(CellColor color, Sprite cellSprite = null)
     {
         _color = color;
         _rect  = GetComponent<RectTransform>();
-        _colorIcon.color = ColorForCell(color);
+        if (cellSprite != null)
+        {
+            _colorIcon.sprite = cellSprite;
+            _colorIcon.color  = Color.white;
+        }
+        else
+        {
+            _colorIcon.color = ColorForCell(color);
+        }
         if (_checkmark) _checkmark.SetActive(false);
         SetCount(0, 1);
     }
@@ -78,7 +86,7 @@ public class ColorCountEntry : MonoBehaviour
         }
 
         _rect.anchoredPosition = origin;
-        _colorIcon.color       = ColorForCell(_color);
+        _colorIcon.color       = _colorIcon.sprite != null ? Color.white : ColorForCell(_color);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

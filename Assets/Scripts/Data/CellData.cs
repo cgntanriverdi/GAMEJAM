@@ -48,8 +48,6 @@ public sealed class PlayerRunState
 {
     public List<GridCoord> SelectedPath;
     public Dictionary<CellColor, int> CurrentColorCounts;
-    public int CheckpointLockedLength;   // bu indeksin gerisine undo yapılamaz
-    public bool CheckpointTriggered;
 }
 
-// Kullanacak scriptler: GridManager, PathGenerator, GameManager, RunValidator, CheckpointManager, CounterPanelUI
+// Kullanacak scriptler: GridManager, PathGenerator, GameManager, RunValidator, CounterPanelUI
