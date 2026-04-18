@@ -37,7 +37,9 @@ public class LevelManager : MonoBehaviour
         // ProgressionService(-10) OnLevelComplete'e ilk abone → CurrentLevel önceden artar.
         // LevelManager(0) ikinci abone → doğru level'ı yükler.
         GameManager.Instance.OnLevelComplete += HandleLevelComplete;
-        LoadCurrentLevel();
+
+        if (!StartupMenuUI.ShouldBlockAutoStart)
+            LoadCurrentLevel();
     }
 
     private void OnDestroy()

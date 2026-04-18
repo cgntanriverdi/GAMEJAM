@@ -73,7 +73,7 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         // LevelManager varsa o yönetir; yoksa test level başlat (editor/standalone).
-        if (LevelManager.Instance == null)
+        if (LevelManager.Instance == null && !StartupMenuUI.ShouldBlockAutoStart)
             StartLevel(BuildCurrentDef());
     }
 
@@ -143,6 +143,20 @@ public class GameManager : MonoBehaviour
         _gameState = GameState.Playing;
         _levelTimerUI?.StartTimer();
         OnLevelStarted?.Invoke(_solution.Cells.Count);
+    }
+
+    public void BeginGameplay()
+    {
+        if (_gameState == GameState.Playing)
+            return;
+
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.LoadCurrentLevel();
+            return;
+        }
+
+        StartLevel(BuildCurrentDef());
     }
 
     /// <summary>
