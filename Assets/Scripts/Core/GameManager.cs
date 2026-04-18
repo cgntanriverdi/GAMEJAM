@@ -119,6 +119,7 @@ public class GameManager : MonoBehaviour
         };
 
         // 6. UI güncelle
+        _counterPanel.SetSpriteSource(_gridManager.GetCellSprite);
         _counterPanel.Initialize(_solution.TargetColorCounts);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
 
@@ -126,7 +127,18 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetPlayerPosition(startCoord);
         _swipeInput.SetInputEnabled(true);
         _gridManager.RefreshDirectionalHighlights(startCoord, _runState.SelectedPath);
-        _playerToken?.Teleport(_gridManager.GetWorldPosition(startCoord));
+        if (_playerToken != null)
+        {
+            var sr = _playerToken.GetComponent<SpriteRenderer>();
+            if (sr != null && sr.sprite != null)
+            {
+                float naturalSize = sr.sprite.rect.width / sr.sprite.pixelsPerUnit;
+                float targetSize  = _gridManager.CellSize * 0.7f;
+                float scale       = targetSize / naturalSize;
+                _playerToken.transform.localScale = new Vector3(scale, scale, 1f);
+            }
+            _playerToken.Teleport(_gridManager.GetWorldPosition(startCoord));
+        }
 
         _gameState = GameState.Playing;
         OnLevelStarted?.Invoke(_solution.Cells.Count);

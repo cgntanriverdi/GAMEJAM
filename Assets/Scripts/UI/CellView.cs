@@ -74,6 +74,8 @@ public class CellView : MonoBehaviour
         // TODO: yönsel ok ikonlarını ve parlama efektini buraya ekle (7.6.3)
     }
 
+    public Sprite GetSprite(CellColor color) => SpriteForCell(color);
+
     private Sprite SpriteForCell(CellColor c) => c switch
     {
         CellColor.Red    => redSprite,
