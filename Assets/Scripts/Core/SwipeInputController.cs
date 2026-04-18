@@ -48,6 +48,13 @@ public class SwipeInputController : MonoBehaviour
 
         if (touch.phase == TouchPhase.Began)
         {
+            // UI elemanına dokunulduysa swipe olarak takip etme
+            if (UnityEngine.EventSystems.EventSystem.current != null &&
+                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+            {
+                _tracking = false;
+                return;
+            }
             _touchStartPos  = touch.position;
             _touchStartTime = Time.time;
             _tracking       = true;
@@ -71,6 +78,14 @@ public class SwipeInputController : MonoBehaviour
 
     private void HandleMouseFallback()
     {
+        // UI elemanı üzerindeyse swipe olarak işleme
+        if (UnityEngine.EventSystems.EventSystem.current != null &&
+            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+        {
+            _mouseTracking = false;
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             _mouseStartPos  = Input.mousePosition;
@@ -80,7 +95,10 @@ public class SwipeInputController : MonoBehaviour
         else if (Input.GetMouseButtonUp(0) && _mouseTracking)
         {
             _mouseTracking = false;
-            TryRegisterSwipe(Input.mousePosition, Time.time - _mouseStartTime);
+            Vector2 delta    = (Vector2)Input.mousePosition - _mouseStartPos;
+            float   duration = Time.time - _mouseStartTime;
+            if (duration <= settings.MaxSwipeTime && delta.magnitude >= settings.MinSwipeDistance)
+                OnSwipeDetected(ComputeDirection(delta));
         }
     }
 #endif
