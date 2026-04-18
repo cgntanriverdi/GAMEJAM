@@ -61,10 +61,13 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        // PlayerPrefs durumunu oku
+        // AudioEnabled PlayerPrefs'te hiç set edilmemişse true yap
+        if (!PlayerPrefs.HasKey("AudioEnabled"))
+            PlayerPrefs.SetInt("AudioEnabled", 1);
+
         _audioEnabled = ProgressionService.Instance != null
             ? ProgressionService.Instance.AudioEnabled
-            : true;
+            : PlayerPrefs.GetInt("AudioEnabled", 1) == 1;
 
         // Runtime'da yükle — inspector'da atanmamışsa Resources'tan al
         if (_sfxCellSelect == null)
@@ -142,6 +145,9 @@ public class AudioManager : MonoBehaviour
     }
 
     public bool IsAudioEnabled => _audioEnabled;
+
+    [ContextMenu("Enable Audio")]
+    private void DebugEnableAudio() => SetAudioEnabled(true);
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
