@@ -8,14 +8,16 @@ using UnityEngine;
 public class GridManager : MonoBehaviour
 {
     [Header("Prefab & sizing")]
-    [SerializeField] private GameObject cellPrefab;   // CellView bileşeni içermeli
-    [SerializeField] private float cellSize = 1f;
-    [SerializeField] private float cellSpacing = 0.05f;
+    [SerializeField] private GameObject cellPrefab;
+    [SerializeField] private float gridWorldSize = 4f;
+
+    public float CellSize { get; private set; }
 
     private int _width;
     private int _height;
+    private Vector2 _gridOffset;
     private CellData[,] _cells;
-    private CellView[,] _views;  // visual bileşenler (CellView.cs ayrı implement edilecek)
+    private CellView[,] _views;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -24,6 +26,13 @@ public class GridManager : MonoBehaviour
     {
         _width  = def.Width;
         _height = def.Height;
+
+        CellSize = gridWorldSize / Mathf.Max(_width, _height);
+        _gridOffset = new Vector2(
+            -(_width  - 1) * CellSize * 0.5f,
+             (_height - 1) * CellSize * 0.5f
+        );
+
         _cells  = new CellData[_width, _height];
         _views  = new CellView[_width, _height];
 
@@ -163,13 +172,22 @@ public class GridManager : MonoBehaviour
     private bool IsInBounds(GridCoord c) =>
         c.X >= 0 && c.X < _width && c.Y >= 0 && c.Y < _height;
 
+    /// <summary>GridCoord'u dünya pozisyonuna çevirir. PlayerToken ve overlay'ler bunu kullanır.</summary>
+    public Vector3 GetWorldPosition(GridCoord coord)
+    {
+        return transform.position + new Vector3(
+            _gridOffset.x + coord.X * CellSize,
+            _gridOffset.y - coord.Y * CellSize,
+            0f
+        );
+    }
+
     private CellView SpawnCell(CellData data)
     {
-        float step = cellSize + cellSpacing;
-        // Unity 2D: x sağa, y yukarı. Grid'de Y aşağı arttığı için negatif.
-        var worldPos = new Vector3(data.Coord.X * step, -data.Coord.Y * step, 0f);
+        var worldPos = GetWorldPosition(data.Coord);
         var go       = Instantiate(cellPrefab, worldPos, Quaternion.identity, transform);
         go.name      = $"Cell_{data.Coord}";
+        go.transform.localScale = new Vector3(CellSize, CellSize, 1f);
         var view     = go.GetComponent<CellView>();
         view.Initialize(data);
         return view;

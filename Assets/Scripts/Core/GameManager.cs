@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GridManager          _gridManager;
     [SerializeField] private SwipeInputController _swipeInput;
     [SerializeField] private CounterPanelUI       _counterPanel;
+    [SerializeField] private PlayerToken          _playerToken;
 
     [Header("Test level (LevelManager devralana kadar)")]
     [SerializeField] private int _width            = 5;
@@ -122,7 +123,9 @@ public class GameManager : MonoBehaviour
         _counterPanel.Initialize(_solution.TargetColorCounts);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
 
-        // 7. Input ve highlight başlat
+        // 7. Input ve highlight başlat; PlayerToken'ı başlangıç hücresine konumlandır
+        var startWorldPos = _gridManager.GetWorldPosition(startCoord);
+        _playerToken?.Initialize(_gridManager.CellSize, startWorldPos);
         _swipeInput.SetPlayerPosition(startCoord);
         _swipeInput.SetInputEnabled(true);
         _gridManager.RefreshDirectionalHighlights(startCoord, _runState.SelectedPath);
@@ -195,6 +198,7 @@ public class GameManager : MonoBehaviour
         _runState.CurrentColorCounts = RecomputeCountsFromPath();
 
         GridCoord newCurrent = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+        _playerToken?.MoveTo(_gridManager.GetWorldPosition(newCurrent));
         _swipeInput.SetPlayerPosition(newCurrent);
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
@@ -216,6 +220,7 @@ public class GameManager : MonoBehaviour
         _runState.SelectedPath.Add(coord);
         _runState.CurrentColorCounts = newCounts;
 
+        _playerToken?.MoveTo(_gridManager.GetWorldPosition(coord));
         _swipeInput.SetPlayerPosition(coord);
         _gridManager.RefreshDirectionalHighlights(coord, _runState.SelectedPath);
         _counterPanel.Refresh(newCounts);
