@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GridManager          _gridManager;
     [SerializeField] private SwipeInputController _swipeInput;
     [SerializeField] private CounterPanelUI       _counterPanel;
+    [SerializeField] private LevelTimerUI         _levelTimerUI;
     [SerializeField] private PlayerToken          _playerToken;
 
     [Header("Test level (LevelManager devralana kadar)")]
@@ -87,6 +88,7 @@ public class GameManager : MonoBehaviour
     {
         _currentDef = def;
         _gameState  = GameState.Idle;
+        _levelTimerUI?.ResetDisplay();
 
         // 1. Grid oluştur
         _gridManager.Initialize(def);
@@ -127,6 +129,7 @@ public class GameManager : MonoBehaviour
         _playerToken?.Teleport(_gridManager.GetWorldPosition(startCoord));
 
         _gameState = GameState.Playing;
+        _levelTimerUI?.StartTimer();
         OnLevelStarted?.Invoke(_solution.Cells.Count);
     }
 
@@ -231,6 +234,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetInputEnabled(false);
         _gridManager.ClearAllHighlights();
         _counterPanel.SetAllComplete();
+        _levelTimerUI?.StopTimer();
 
         OnLevelComplete?.Invoke();
         // TODO: LevelComplete ekranını aç (Plan §8 Saat 34-38)
