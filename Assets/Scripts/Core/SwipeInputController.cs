@@ -31,6 +31,7 @@ public class SwipeInputController : MonoBehaviour
         if (!_inputEnabled) return;
 
         HandleTouchInput();
+        HandleKeyboardInput();
 
 #if UNITY_EDITOR
         HandleMouseFallback();
@@ -83,6 +84,22 @@ public class SwipeInputController : MonoBehaviour
         }
     }
 #endif
+
+    // ── Keyboard ──────────────────────────────────────────────────────────────
+
+    private void HandleKeyboardInput()
+    {
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+            OnSwipeDetected(SwipeDirection.Up);
+        else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
+            OnSwipeDetected(SwipeDirection.Down);
+        else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+            OnSwipeDetected(SwipeDirection.Left);
+        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+            OnSwipeDetected(SwipeDirection.Right);
+        else if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyDown(KeyCode.Backspace))
+            GameManager.Instance.TryUndo();
+    }
 
     // ── Swipe evaluation ──────────────────────────────────────────────────────
 

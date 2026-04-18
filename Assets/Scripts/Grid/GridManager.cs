@@ -8,16 +8,20 @@ using UnityEngine;
 public class GridManager : MonoBehaviour
 {
     [Header("Prefab & sizing")]
-    [SerializeField] private GameObject cellPrefab;
-    [SerializeField] private float gridWorldSize = 4f;
+    [SerializeField] private GameObject cellPrefab;   // CellView bileşeni içermeli
+    [SerializeField] private float gridWorldSize = 8f; // grid'in toplam dünya boyutu (sabit)
+    [SerializeField] private float spacingRatio  = 0.05f; // cellSize'ın yüzdesi olarak boşluk
 
-    public float CellSize { get; private set; }
+    private float cellSize;    // Initialize'da hesaplanır
+    private float cellSpacing; // Initialize'da hesaplanır
+
+    [Header("End sprite")]
+    [SerializeField] private Sprite boneSprite;
 
     private int _width;
     private int _height;
-    private Vector2 _gridOffset;
     private CellData[,] _cells;
-    private CellView[,] _views;
+    private CellView[,] _views;  // visual bileşenler (CellView.cs ayrı implement edilecek)
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -26,15 +30,19 @@ public class GridManager : MonoBehaviour
     {
         _width  = def.Width;
         _height = def.Height;
-
-        CellSize = gridWorldSize / Mathf.Max(_width, _height);
-        _gridOffset = new Vector2(
-            -(_width  - 1) * CellSize * 0.5f,
-             (_height - 1) * CellSize * 0.5f
-        );
-
         _cells  = new CellData[_width, _height];
         _views  = new CellView[_width, _height];
+
+        // Hücre boyutunu grid'in toplam dünya boyutuna göre hesapla
+        int maxDim    = Mathf.Max(_width, _height);
+        cellSize      = gridWorldSize / maxDim;
+        cellSpacing   = cellSize * spacingRatio;
+
+        // Grid'i ortalamak için başlangıç offset'ini hesapla
+        float step    = cellSize + cellSpacing;
+        float offsetX = -((_width  - 1) * step) / 2f;
+        float offsetY =  ((_height - 1) * step) / 2f;
+        transform.localPosition = new Vector3(offsetX, offsetY, transform.localPosition.z);
 
         DestroyExistingCells();
 
@@ -49,8 +57,8 @@ public class GridManager : MonoBehaviour
                 {
                     Coord   = coord,
                     Color   = palette[Random.Range(0, palette.Length)],
-                    IsStart = (x == 0 && y == 0),
-                    IsEnd   = (x == _width - 1 && y == _height - 1)
+                    IsStart = false,
+                    IsEnd   = false
                 };
                 _cells[x, y] = data;
                 _views[x, y] = SpawnCell(data);
@@ -64,17 +72,33 @@ public class GridManager : MonoBehaviour
     /// </summary>
     public void ApplySolution(PathSolution solution, LevelDefinition def)
     {
-        CellColor[] palette = BuildColorPalette(def.ActiveColorCount);
-        int pathLen = solution.Cells.Count;
-
-        // Her yol hücresine renk ata (eşit dağılım, mod ile)
-        for (int i = 0; i < pathLen; i++)
+        // Önceki start/end bayraklarını temizle
+        foreach (var cell in _cells)
         {
-            GridCoord coord = solution.Cells[i];
-            CellColor color = palette[i % palette.Length];
-            _cells[coord.X, coord.Y].Color = color;
-            _views[coord.X, coord.Y].SetColor(color);
+            cell.IsStart = false;
+            cell.IsEnd   = false;
         }
+
+        // Gerçek start ve end'i işaretle
+        GridCoord startCoord = solution.Cells[0];
+        GridCoord endCoord   = solution.Cells[solution.Cells.Count - 1];
+        _cells[startCoord.X, startCoord.Y].IsStart = true;
+        _cells[endCoord.X,   endCoord.Y  ].IsEnd   = true;
+
+        // Renkleri PathColors'tan uygula (path'ten türetilmiş, random)
+        foreach (var kvp in solution.PathColors)
+        {
+            _cells[kvp.Key.X, kvp.Key.Y].Color = kvp.Value;
+            _views[kvp.Key.X, kvp.Key.Y].SetColor(kvp.Value);
+        }
+
+        // Start hücresini gri, end hücresini mor göster
+        _views[startCoord.X, startCoord.Y].SetAsStart();
+        _views[endCoord.X,   endCoord.Y  ].SetAsEnd();
+
+        // End hücresine bone overlay — hücrenin %70'i kadar
+        if (boneSprite != null)
+            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
@@ -167,29 +191,30 @@ public class GridManager : MonoBehaviour
             view.SetHighlight(HighlightState.None);
     }
 
+    /// <summary>GridCoord'u world-space pozisyona çevirir (PlayerToken için).</summary>
+    public Vector3 GetWorldPosition(GridCoord coord)
+    {
+        float step     = cellSize + cellSpacing;
+        var localPos   = new Vector3(coord.X * step, -coord.Y * step, 0f);
+        return transform.TransformPoint(localPos);
+    }
+
     // ── Internals ─────────────────────────────────────────────────────────────
 
     private bool IsInBounds(GridCoord c) =>
         c.X >= 0 && c.X < _width && c.Y >= 0 && c.Y < _height;
 
-    /// <summary>GridCoord'u dünya pozisyonuna çevirir. PlayerToken ve overlay'ler bunu kullanır.</summary>
-    public Vector3 GetWorldPosition(GridCoord coord)
-    {
-        return transform.position + new Vector3(
-            _gridOffset.x + coord.X * CellSize,
-            _gridOffset.y - coord.Y * CellSize,
-            0f
-        );
-    }
-
     private CellView SpawnCell(CellData data)
     {
-        var worldPos = GetWorldPosition(data.Coord);
-        var go       = Instantiate(cellPrefab, worldPos, Quaternion.identity, transform);
+        float step     = cellSize + cellSpacing;
+        var localPos   = new Vector3(data.Coord.X * step, -data.Coord.Y * step, 0f);
+        var go         = Instantiate(cellPrefab, transform);
+        go.transform.localPosition = localPos;
         go.name      = $"Cell_{data.Coord}";
-        go.transform.localScale = new Vector3(CellSize, CellSize, 1f);
+        go.transform.localScale = new Vector3(cellSize, cellSize, 1f);
         var view     = go.GetComponent<CellView>();
         view.Initialize(data);
+
         return view;
     }
 

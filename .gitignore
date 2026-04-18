@@ -1,4 +1,4 @@
-﻿Library/
+Library/
 Temp/
 Logs/
 UserSettings/
@@ -7,10 +7,3 @@ Builds/
 .utmp/
 *.csproj
 *.sln
-GAMEJAM/Library/
-GAMEJAM/Temp/
-GAMEJAM/Logs/
-GAMEJAM/UserSettings/
-GAMEJAM/Build/
-GAMEJAM/Builds/
-GAMEJAM/.utmp/

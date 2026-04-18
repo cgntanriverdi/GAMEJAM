@@ -73,18 +73,18 @@ public class RunValidator
             return new ValidationResult(MoveOutcome.InvalidNotNeighbor);
         }
 
+        // 4. End cell'e ulaşıldı mı? — end hücresinin rengi sayılmaz
+        if (cell.IsEnd)
+        {
+            bool allMatch = CountsMatch(state.CurrentColorCounts, solution.TargetColorCounts);
+            var outcome   = allMatch ? MoveOutcome.Win : MoveOutcome.EndReachedButIncomplete;
+            return new ValidationResult(outcome, state.CurrentColorCounts);
+        }
+
         var projected = ProjectCounts(state.CurrentColorCounts, cell.Color);
 
         if (WouldOverflow(projected, solution.TargetColorCounts))
             return new ValidationResult(MoveOutcome.InvalidColorOverflow);
-
-        // 4. End cell'e ulaşıldı mı?
-        if (cell.IsEnd)
-        {
-            bool allMatch = CountsMatch(projected, solution.TargetColorCounts);
-            var outcome   = allMatch ? MoveOutcome.Win : MoveOutcome.EndReachedButIncomplete;
-            return new ValidationResult(outcome, projected);
-        }
 
         return new ValidationResult(MoveOutcome.Valid, projected);
     }
