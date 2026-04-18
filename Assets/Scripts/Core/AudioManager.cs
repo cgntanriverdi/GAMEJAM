@@ -66,6 +66,10 @@ public class AudioManager : MonoBehaviour
             ? ProgressionService.Instance.AudioEnabled
             : true;
 
+        // Runtime'da yükle — inspector'da atanmamışsa Resources'tan al
+        if (_sfxCellSelect == null)
+            _sfxCellSelect = Resources.Load<AudioClip>("StepSound");
+
         // GameManager event'leri
         GameManager.Instance.OnStepTaken    += OnStepTaken;
         GameManager.Instance.OnLevelComplete += OnLevelComplete;
