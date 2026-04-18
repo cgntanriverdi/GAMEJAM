@@ -85,12 +85,12 @@ public class ColorCountEntry : MonoBehaviour
 
     public CellColor EntryColor => _color;
 
-    private static Color ColorForCell(CellColor c) => c switch
+    private static UnityEngine.Color ColorForCell(CellColor c) => c switch
     {
-        CellColor.Red    => new Color(0.9f,  0.22f, 0.22f),
-        CellColor.Blue   => new Color(0.22f, 0.45f, 0.9f),
-        CellColor.Green  => new Color(0.22f, 0.82f, 0.35f),
-        CellColor.Yellow => new Color(0.95f, 0.82f, 0.12f),
+        CellColor.Red    => new UnityEngine.Color(0.9f,  0.22f, 0.22f),
+        CellColor.Blue   => new UnityEngine.Color(0.22f, 0.45f, 0.9f),
+        CellColor.Green  => new UnityEngine.Color(0.22f, 0.82f, 0.35f),
+        CellColor.Yellow => new UnityEngine.Color(0.95f, 0.82f, 0.12f),
         _                => UnityEngine.Color.white
     };
 }
