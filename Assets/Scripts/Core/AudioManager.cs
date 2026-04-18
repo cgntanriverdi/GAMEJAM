@@ -70,6 +70,9 @@ public class AudioManager : MonoBehaviour
         if (_sfxCellSelect == null)
             _sfxCellSelect = Resources.Load<AudioClip>("StepSound");
 
+        if (_sfxLevelComplete == null)
+            _sfxLevelComplete = Resources.Load<AudioClip>("LevelWinSound");
+
         // GameManager event'leri
         GameManager.Instance.OnStepTaken    += OnStepTaken;
         GameManager.Instance.OnLevelComplete += OnLevelComplete;
