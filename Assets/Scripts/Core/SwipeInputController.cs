@@ -56,7 +56,7 @@ public class SwipeInputController : MonoBehaviour
             _tracking = false;
             TryRegisterSwipe(touch.position, Time.time - _touchStartTime);
         }
-        else if (touch.phase == TouchPhase.Cancelled)
+        else if (touch.phase == TouchPhase.Canceled)
         {
             _tracking = false;
         }

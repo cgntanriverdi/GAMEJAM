@@ -16,9 +16,9 @@ public class ColorCountEntry : MonoBehaviour
     private CellColor     _color;
     private RectTransform _rect;
 
-    private static readonly Color NormalTextColor   = Color.white;
-    private static readonly Color OverflowTextColor = new Color(1f, 0.22f, 0.22f);
-    private static readonly Color CompleteTextColor = new Color(0.3f, 1f, 0.45f);
+    private static readonly UnityEngine.Color NormalTextColor = UnityEngine.Color.white;
+    private static readonly UnityEngine.Color OverflowTextColor = new UnityEngine.Color(1f, 0.22f, 0.22f);
+    private static readonly UnityEngine.Color CompleteTextColor = new UnityEngine.Color(0.3f, 1f, 0.45f);
 
     // ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ public class ColorCountEntry : MonoBehaviour
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    public CellColor Color => _color;
+    public CellColor EntryColor => _color;
 
     private static Color ColorForCell(CellColor c) => c switch
     {
@@ -91,7 +91,7 @@ public class ColorCountEntry : MonoBehaviour
         CellColor.Blue   => new Color(0.22f, 0.45f, 0.9f),
         CellColor.Green  => new Color(0.22f, 0.82f, 0.35f),
         CellColor.Yellow => new Color(0.95f, 0.82f, 0.12f),
-        _                => Color.white
+        _                => UnityEngine.Color.white
     };
 }
 
