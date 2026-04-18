@@ -9,8 +9,11 @@ public class GridManager : MonoBehaviour
 {
     [Header("Prefab & sizing")]
     [SerializeField] private GameObject cellPrefab;   // CellView bileşeni içermeli
-    [SerializeField] private float cellSize = 1f;
-    [SerializeField] private float cellSpacing = 0.05f;
+    [SerializeField] private float gridWorldSize = 8f; // grid'in toplam dünya boyutu (sabit)
+    [SerializeField] private float spacingRatio  = 0.05f; // cellSize'ın yüzdesi olarak boşluk
+
+    private float cellSize;    // Initialize'da hesaplanır
+    private float cellSpacing; // Initialize'da hesaplanır
 
     [Header("End sprite")]
     [SerializeField] private Sprite boneSprite;
@@ -29,6 +32,17 @@ public class GridManager : MonoBehaviour
         _height = def.Height;
         _cells  = new CellData[_width, _height];
         _views  = new CellView[_width, _height];
+
+        // Hücre boyutunu grid'in toplam dünya boyutuna göre hesapla
+        int maxDim    = Mathf.Max(_width, _height);
+        cellSize      = gridWorldSize / maxDim;
+        cellSpacing   = cellSize * spacingRatio;
+
+        // Grid'i ortalamak için başlangıç offset'ini hesapla
+        float step    = cellSize + cellSpacing;
+        float offsetX = -((_width  - 1) * step) / 2f;
+        float offsetY =  ((_height - 1) * step) / 2f;
+        transform.localPosition = new Vector3(offsetX, offsetY, transform.localPosition.z);
 
         DestroyExistingCells();
 
@@ -78,9 +92,13 @@ public class GridManager : MonoBehaviour
             _views[kvp.Key.X, kvp.Key.Y].SetColor(kvp.Value);
         }
 
-        // End hücresine bone overlay (her level'da doğru hücreye)
+        // Start hücresini gri, end hücresini mor göster
+        _views[startCoord.X, startCoord.Y].SetAsStart();
+        _views[endCoord.X,   endCoord.Y  ].SetAsEnd();
+
+        // End hücresine bone overlay — hücrenin %70'i kadar
         if (boneSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite);
+            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>

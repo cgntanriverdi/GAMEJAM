@@ -110,11 +110,10 @@ public class GameManager : MonoBehaviour
         // 5. Run state'i başlat
         //    Start hücresi seçili; rengi ilk sayıma dahil (çözüm path'ine dahil).
         var startCoord = _solution.Cells[0];
-        var startCell  = _gridManager.GetCell(startCoord);
         _runState = new PlayerRunState
         {
             SelectedPath           = new List<GridCoord> { startCoord },
-            CurrentColorCounts     = InitialCounts(startCell),
+            CurrentColorCounts     = new Dictionary<CellColor, int>(),
             CheckpointLockedLength = 0,
             CheckpointTriggered    = false
         };
@@ -265,14 +264,15 @@ public class GameManager : MonoBehaviour
         return cell != null ? cell.Color : CellColor.Red;
     }
 
-    /// <summary>Undo sonrası mevcut SelectedPath'ten renk sayılarını yeniden hesaplar.</summary>
+    /// <summary>Undo sonrası mevcut SelectedPath'ten renk sayılarını yeniden hesaplar.
+    /// Start (index 0) ve End hücreleri sayılmaz.</summary>
     private Dictionary<CellColor, int> RecomputeCountsFromPath()
     {
         var counts = new Dictionary<CellColor, int>();
-        foreach (var coord in _runState.SelectedPath)
+        for (int i = 1; i < _runState.SelectedPath.Count; i++)
         {
-            CellData cell = _gridManager.GetCell(coord);
-            if (cell == null) continue;
+            CellData cell = _gridManager.GetCell(_runState.SelectedPath[i]);
+            if (cell == null || cell.IsEnd) continue;
             counts.TryGetValue(cell.Color, out int prev);
             counts[cell.Color] = prev + 1;
         }
