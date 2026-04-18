@@ -138,6 +138,19 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// HintManager tarafından çağrılır: belirtilen hücreleri Hint rengiyle işaretler.
+    /// ClearAllHighlights + GameManager.RestoreHighlights ile geri alınır.
+    /// </summary>
+    public void ShowHintHighlight(List<GridCoord> cells)
+    {
+        foreach (var coord in cells)
+        {
+            if (!IsInBounds(coord)) continue;
+            _views[coord.X, coord.Y].SetHighlight(HighlightState.Hint);
+        }
+    }
+
     /// <summary>Tüm highlight'ları sıfırlar (level reset veya hint sonrası).</summary>
     public void ClearAllHighlights()
     {

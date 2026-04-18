@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Highlight durumları — GridManager tarafından kullanılır.
-public enum HighlightState { None, Selected, Reachable, Dimmed }
+public enum HighlightState { None, Selected, Reachable, Dimmed, Hint }
 
 /// <summary>
 /// Bir grid hücresinin görsel bileşeni.
