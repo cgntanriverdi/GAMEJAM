@@ -27,13 +27,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GridManager          _gridManager;
     [SerializeField] private SwipeInputController _swipeInput;
     [SerializeField] private CounterPanelUI       _counterPanel;
+    [SerializeField] private LevelTimerUI         _levelTimerUI;
     [SerializeField] private PlayerToken          _playerToken;
 
     [Header("Test level (LevelManager devralana kadar)")]
     [SerializeField] private int _width            = 5;
     [SerializeField] private int _height           = 5;
-    [SerializeField] private int _minPathLength    = 8;
-    [SerializeField] private int _maxPathLength    = 20;
+    [SerializeField] private int _minPathLength    = 6;
+    [SerializeField] private int _maxPathLength    = 18;
     [SerializeField] private int _activeColorCount = 3;
 
     // ── Events (CheckpointManager ve HintManager dinler) ─────────────────────
@@ -87,6 +88,7 @@ public class GameManager : MonoBehaviour
     {
         _currentDef = def;
         _gameState  = GameState.Idle;
+        _levelTimerUI?.ResetDisplay();
 
         // 1. Grid oluştur
         _gridManager.Initialize(def);
@@ -112,10 +114,8 @@ public class GameManager : MonoBehaviour
         var startCoord = _solution.Cells[0];
         _runState = new PlayerRunState
         {
-            SelectedPath           = new List<GridCoord> { startCoord },
-            CurrentColorCounts     = new Dictionary<CellColor, int>(),
-            CheckpointLockedLength = 0,
-            CheckpointTriggered    = false
+            SelectedPath       = new List<GridCoord> { startCoord },
+            CurrentColorCounts = new Dictionary<CellColor, int>(),
         };
 
         // 6. UI güncelle
@@ -141,6 +141,7 @@ public class GameManager : MonoBehaviour
         }
 
         _gameState = GameState.Playing;
+        _levelTimerUI?.StartTimer();
         OnLevelStarted?.Invoke(_solution.Cells.Count);
     }
 
@@ -180,7 +181,6 @@ public class GameManager : MonoBehaviour
 
             case MoveOutcome.InvalidNotNeighbor:
             case MoveOutcome.InvalidAlreadyVisited:
-            case MoveOutcome.InvalidCheckpointLocked:
                 OnInvalidMove(result.Outcome);
                 break;
         }
@@ -215,14 +215,6 @@ public class GameManager : MonoBehaviour
         OnUndoPerformed?.Invoke();
     }
 
-    /// <summary>CheckpointManager tarafından set edilir (Plan §7.8 → §7.5).</summary>
-    public void SetCheckpointLock(int lockedLength)
-    {
-        if (_runState == null) return;
-        _runState.CheckpointLockedLength = lockedLength;
-        _runState.CheckpointTriggered    = true;
-    }
-
     // ── Internals ─────────────────────────────────────────────────────────────
 
     private void CommitMove(GridCoord coord, Dictionary<CellColor, int> newCounts)
@@ -254,6 +246,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetInputEnabled(false);
         _gridManager.ClearAllHighlights();
         _counterPanel.SetAllComplete();
+        _levelTimerUI?.StopTimer();
 
         OnLevelComplete?.Invoke();
         // TODO: LevelComplete ekranını aç (Plan §8 Saat 34-38)
@@ -316,5 +309,4 @@ public class GameManager : MonoBehaviour
 
 // Kullanacak scriptler: SwipeInputController (TryMovePlayer çağrısı),
 //                       LevelManager (StartLevel çağrısı),
-//                       CheckpointManager (SetCheckpointLock),
 //                       HintManager (SetInputEnabled üzerinden)

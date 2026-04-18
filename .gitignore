@@ -5,5 +5,10 @@ UserSettings/
 Build/
 Builds/
 .utmp/
+.DS_Store
+.vscode/
+Assets/_Recovery/
+Assets/_Recovery.meta
+Musics/Oyunmenü.m4a.mp4
 *.csproj
 *.sln
