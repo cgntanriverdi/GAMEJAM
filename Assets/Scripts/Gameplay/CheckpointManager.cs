@@ -60,8 +60,8 @@ public class CheckpointManager : MonoBehaviour
 
         _triggered = true;
 
-        // Undo kilidi: checkpoint öncesine geri dönülemez
         GameManager.Instance.SetCheckpointLock(currentPathLength);
+        AudioManager.Instance?.PlayCheckpoint();
 
         StopAllCoroutines();
         StartCoroutine(ShowToast());

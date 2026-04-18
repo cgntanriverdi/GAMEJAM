@@ -46,6 +46,12 @@ public class GameManager : MonoBehaviour
     /// <summary>Win koşulu sağlandığında.</summary>
     public event Action OnLevelComplete;
 
+    /// <summary>Geçersiz hamle denendiğinde: arg = red sebebi.</summary>
+    public event Action<MoveOutcome> OnMoveFailed;
+
+    /// <summary>Başarılı undo sonrasında.</summary>
+    public event Action OnUndoPerformed;
+
     // ── Properties (HintManager okur) ────────────────────────────────────────
 
     public PathSolution CurrentSolution => _solution;
@@ -64,7 +70,9 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        StartLevel(BuildCurrentDef());
+        // LevelManager varsa o yönetir; yoksa test level başlat (editor/standalone).
+        if (LevelManager.Instance == null)
+            StartLevel(BuildCurrentDef());
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -72,8 +80,9 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// LevelManager veya Start() tarafından çağrılır.
     /// Grid'i sıfırlar, path üretir, tüm sistemi level'a hazırlar.
+    /// curatedFallback: PathGenerator başarısız olursa LevelManager'ın sağladığı yedek.
     /// </summary>
-    public void StartLevel(LevelDefinition def)
+    public void StartLevel(LevelDefinition def, PathSolution curatedFallback = null)
     {
         _currentDef = def;
         _gameState  = GameState.Idle;
@@ -81,13 +90,13 @@ public class GameManager : MonoBehaviour
         // 1. Grid oluştur
         _gridManager.Initialize(def);
 
-        // 2. Gizli path üret
+        // 2. Gizli path üret; başarısız olursa curated fallback'e düş
         var generator = new PathGenerator();
-        _solution = generator.Generate(def);
+        _solution = generator.Generate(def) ?? curatedFallback;
 
         if (_solution == null)
         {
-            Debug.LogError("[GameManager] Path üretilemedi; level başlatılamadı.");
+            Debug.LogError("[GameManager] Path üretilemedi ve fallback yok; level başlatılamadı.");
             return;
         }
 
@@ -189,6 +198,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetPlayerPosition(newCurrent);
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
+        OnUndoPerformed?.Invoke();
     }
 
     /// <summary>CheckpointManager tarafından set edilir (Plan §7.8 → §7.5).</summary>
@@ -237,7 +247,7 @@ public class GameManager : MonoBehaviour
 
     private void OnInvalidMove(MoveOutcome reason)
     {
-        // TODO: SFX "invalid swipe" (Plan §7.13), haptic
+        OnMoveFailed?.Invoke(reason);
         Debug.Log($"[GameManager] Geçersiz hamle: {reason}");
     }
 

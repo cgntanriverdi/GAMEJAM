@@ -90,6 +90,7 @@ public class HintManager : MonoBehaviour
     private IEnumerator RevealAndHide(List<GridCoord> cells)
     {
         _revealActive = true;
+        AudioManager.Instance?.PlayHintReveal();
 
         // Swipe input'u durdur: hint sırasında yanlışlıkla hareket edilmesin
         // (Input'u disable etmiyoruz — sadece görsel, oyuncu isterse oynayabilir)
