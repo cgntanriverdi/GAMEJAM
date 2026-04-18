@@ -11,7 +11,6 @@ public enum MoveOutcome
     InvalidAlreadyVisited, // hedef hücre seçili yolda zaten var
     InvalidColorOverflow,  // bu adım bir rengi hedefin üstüne çıkarıyor
     EndReachedButIncomplete, // end'e gelindi ama renk sayıları tutmuyor
-    InvalidCheckpointLocked, // undo bu indeksin gerisine geçemez
 }
 
 public readonly struct ValidationResult
@@ -92,18 +91,13 @@ public class RunValidator
     // ── Undo ─────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Undo işleminin checkpoint kilidini ihlal edip etmediğini kontrol eder.
-    /// Plan §7.9 kural 3 ve §7.6.4.
+    /// Undo işleminin geçerli olup olmadığını kontrol eder.
     /// </summary>
     public ValidationResult ValidateUndo(PlayerRunState state)
     {
         // Undo yapılabilmesi için en az 2 hücre seçili olmalı (start hücresi sabit)
         if (state.SelectedPath.Count <= 1)
-            return new ValidationResult(MoveOutcome.InvalidCheckpointLocked);
-
-        // Checkpoint kilidi: undo sonrası path, CheckpointLockedLength'in altına inemez
-        if (state.SelectedPath.Count <= state.CheckpointLockedLength)
-            return new ValidationResult(MoveOutcome.InvalidCheckpointLocked);
+            return new ValidationResult(MoveOutcome.InvalidNotNeighbor);
 
         return new ValidationResult(MoveOutcome.Valid);
     }
@@ -175,3 +169,4 @@ public class RunValidator
 }
 
 // Kullanacak scriptler: GameManager (ValidateMove, ValidateUndo çağrısı ve MoveOutcome'a göre tepki)
+

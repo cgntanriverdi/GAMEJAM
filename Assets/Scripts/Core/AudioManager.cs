@@ -23,8 +23,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip _sfxCellSelect;    // geçerli adım
     [SerializeField] private AudioClip _sfxInvalidSwipe;  // geçersiz yön
     [SerializeField] private AudioClip _sfxUndo;          // undo
-    [SerializeField] private AudioClip _sfxCheckpoint;    // checkpoint tetiklendi
-    [SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
+[SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
     [SerializeField] private AudioClip _sfxHintReveal;    // hint açıldı
 
     [Header("Music Clips")]
@@ -90,9 +89,8 @@ public class AudioManager : MonoBehaviour
     private void OnMoveFailed(MoveOutcome _) => PlaySFX(_sfxInvalidSwipe);
     private void OnUndoPerformed()     => PlaySFX(_sfxUndo);
 
-    // ── Public SFX — CheckpointManager ve HintManager çağırır ────────────────
+    // ── Public SFX — HintManager çağırır ────────────────────────────────────
 
-    public void PlayCheckpoint()  => PlaySFX(_sfxCheckpoint);
     public void PlayHintReveal()  => PlaySFX(_sfxHintReveal);
 
     // ── Music API ─────────────────────────────────────────────────────────────
@@ -206,7 +204,6 @@ public class AudioManager : MonoBehaviour
     }
 }
 
-// Kullanacak scriptler: CheckpointManager (PlayCheckpoint),
-//                       HintManager (PlayHintReveal),
+// Kullanacak scriptler: HintManager (PlayHintReveal),
 //                       MainMenu / GameBootstrap (PlayMainMenuMusic, PlayGameplayMusic),
 //                       Ayarlar UI (SetAudioEnabled)
