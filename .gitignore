@@ -1,8 +1,9 @@
-﻿Library/
+Library/
 Temp/
 Logs/
 UserSettings/
-GAMEJAM/
 Build/
+Builds/
+.utmp/
 *.csproj
 *.sln

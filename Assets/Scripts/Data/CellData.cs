@@ -37,8 +37,9 @@ public sealed class LevelDefinition
 
 public sealed class PathSolution
 {
-    public List<GridCoord> Cells;                    // gizli yolun sıralı hücreleri
-    public Dictionary<CellColor, int> TargetColorCounts; // oyuncuya gösterilen hedef sayılar
+    public List<GridCoord> Cells;                         // gizli yolun sıralı hücreleri
+    public Dictionary<CellColor, int> TargetColorCounts;  // oyuncuya gösterilen hedef sayılar
+    public Dictionary<GridCoord, CellColor> PathColors;   // hücre → renk (path'ten türetilir)
 }
 
 // ── Runtime state ─────────────────────────────────────────────────────────────

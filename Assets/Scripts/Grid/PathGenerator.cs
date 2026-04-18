@@ -3,29 +3,23 @@ using UnityEngine;
 
 /// <summary>
 /// Gizli çözüm yolunu self-avoiding random walk ile üretir.
-/// Renk frekanslarını hesaplar ve PathSolution olarak döner.
+/// Start/end köşeler arasından random seçilir; renkler path'ten türetilir.
 /// MonoBehaviour değil — GameManager veya LevelManager new'leyerek çağırır.
 /// </summary>
 public class PathGenerator
 {
-    private const int MaxAttempts = 200;  // bu kadar denemede yol bulunamazsa curated fallback
+    private const int MaxAttempts = 200;
 
     // ── Public entry point ────────────────────────────────────────────────────
 
-    /// <summary>
-    /// LevelDefinition'a göre bir PathSolution üretir.
-    /// Tüm denemeler başarısız olursa null döner (GameManager fallback'e geçmeli).
-    /// </summary>
     public PathSolution Generate(LevelDefinition def, int seed = -1)
     {
         if (seed >= 0)
             Random.InitState(seed);
 
-        var start = new GridCoord(0, 0);
-        var end   = new GridCoord(def.Width - 1, def.Height - 1);
-
         for (int attempt = 0; attempt < MaxAttempts; attempt++)
         {
+            PickStartEnd(def, out GridCoord start, out GridCoord end);
             List<GridCoord> path = TryWalk(def, start, end);
             if (path != null)
                 return BuildSolution(path, def);
@@ -36,87 +30,92 @@ public class PathGenerator
         return null;
     }
 
-    // ── Walk ──────────────────────────────────────────────────────────────────
+    // ── Start / End seçimi ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Self-avoiding random walk: başlangıçtan bitişe ulaşmaya çalışır.
-    /// Başarılıysa ve MinPathLength sağlanıyorsa yolu döner; aksi hâlde null.
+    /// Dört köşeden rastgele iki farklı köşe seçer.
+    /// Köşeler arası mesafe her zaman yeterince büyük olduğundan MinPathLength uyumu kolaylaşır.
     /// </summary>
+    private static void PickStartEnd(LevelDefinition def, out GridCoord start, out GridCoord end)
+    {
+        GridCoord[] corners = {
+            new GridCoord(0,            0),
+            new GridCoord(def.Width-1,  0),
+            new GridCoord(0,            def.Height-1),
+            new GridCoord(def.Width-1,  def.Height-1),
+        };
+        int si = Random.Range(0, corners.Length);
+        int ei;
+        do { ei = Random.Range(0, corners.Length); } while (ei == si);
+        start = corners[si];
+        end   = corners[ei];
+    }
+
+    // ── Walk ──────────────────────────────────────────────────────────────────
+
     private List<GridCoord> TryWalk(LevelDefinition def, GridCoord start, GridCoord end)
     {
         var path    = new List<GridCoord> { start };
         var visited = new HashSet<GridCoord> { start };
         var current = start;
 
-        int maxSteps = def.Width * def.Height;  // sonsuz döngü güvencesi
+        int maxSteps = def.Width * def.Height;
 
         for (int step = 0; step < maxSteps; step++)
         {
-            if (current == end)
-                break;
+            if (current == end) break;
 
             List<GridCoord> neighbors = GetUnvisitedNeighbors(current, visited, def);
+            if (neighbors.Count == 0) return null;
 
-            if (neighbors.Count == 0)
-                return null;  // çıkmaz sokak — yeniden dene
-
-            // Bitiş komşuysa erken yakalama: yol min uzunluğu sağlıyorsa bitir
             bool endReachable = neighbors.Contains(end);
             if (endReachable && path.Count >= def.MinPathLength - 1)
             {
                 path.Add(end);
                 return path;
             }
-            // Bitişi şimdilik atla, daha uzun yol için başka yön dene
             if (endReachable && path.Count < def.MinPathLength - 1)
                 neighbors.Remove(end);
 
-            if (neighbors.Count == 0)
-                return null;
+            if (neighbors.Count == 0) return null;
 
             GridCoord next = neighbors[Random.Range(0, neighbors.Count)];
             path.Add(next);
             visited.Add(next);
             current = next;
 
-            if (path.Count > def.MaxPathLength)
-                return null;  // çok uzadı
+            if (path.Count > def.MaxPathLength) return null;
         }
 
-        // End'e hiç ulaşılmadıysa geçersiz
-        if (path.Count == 0 || path[path.Count - 1] != end)
-            return null;
-
+        if (path.Count == 0 || path[path.Count - 1] != end) return null;
         return path.Count >= def.MinPathLength ? path : null;
     }
 
     // ── Color assignment ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Yol hücrelerine renk atar ve TargetColorCounts hesaplar.
-    /// Start ve End hücreleri de renklendirilir (oyuncu görür).
+    /// Her path hücresine random renk atar; TargetColorCounts bu atamadan türetilir.
+    /// PathColors dict'i GridManager.ApplySolution'a iletilir — çift hesaplama yok.
     /// </summary>
-    private PathSolution BuildSolution(List<GridCoord> path, LevelDefinition def)
+    private static PathSolution BuildSolution(List<GridCoord> path, LevelDefinition def)
     {
-        CellColor[] palette = BuildPalette(def.ActiveColorCount);
-        var counts = new Dictionary<CellColor, int>();
+        CellColor[] palette    = BuildPalette(def.ActiveColorCount);
+        var pathColors         = new Dictionary<GridCoord, CellColor>();
+        var counts             = new Dictionary<CellColor, int>();
 
-        // Her renge ön-sıfır ver
-        foreach (var color in palette)
-            counts[color] = 0;
-
-        // Renkleri path boyunca eşit aralıklarla dağıt (deterministik desen)
-        int pathLen = path.Count;
-        for (int i = 0; i < pathLen; i++)
+        foreach (var coord in path)
         {
-            CellColor color = palette[i % palette.Length];
-            counts[color]++;
+            CellColor color = palette[Random.Range(0, palette.Length)];
+            pathColors[coord] = color;
+            counts.TryGetValue(color, out int prev);
+            counts[color] = prev + 1;
         }
 
         return new PathSolution
         {
             Cells             = path,
-            TargetColorCounts = counts
+            TargetColorCounts = counts,
+            PathColors        = pathColors,
         };
     }
 
@@ -126,14 +125,11 @@ public class PathGenerator
         GridCoord coord, HashSet<GridCoord> visited, LevelDefinition def)
     {
         var result = new List<GridCoord>(4);
-        GridCoord[] candidates = {
-            coord.Up(), coord.Down(), coord.Left(), coord.Right()
-        };
-        foreach (var c in candidates)
+        foreach (var c in new[] { coord.Up(), coord.Down(), coord.Left(), coord.Right() })
         {
-            if (c.X < 0 || c.X >= def.Width) continue;
+            if (c.X < 0 || c.X >= def.Width)  continue;
             if (c.Y < 0 || c.Y >= def.Height) continue;
-            if (visited.Contains(c)) continue;
+            if (visited.Contains(c))           continue;
             result.Add(c);
         }
         return result;

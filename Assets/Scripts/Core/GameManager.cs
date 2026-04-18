@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GridManager          _gridManager;
     [SerializeField] private SwipeInputController _swipeInput;
     [SerializeField] private CounterPanelUI       _counterPanel;
+    [SerializeField] private PlayerToken          _playerToken;
 
     [Header("Test level (LevelManager devralana kadar)")]
     [SerializeField] private int _width            = 5;
@@ -109,11 +110,10 @@ public class GameManager : MonoBehaviour
         // 5. Run state'i başlat
         //    Start hücresi seçili; rengi ilk sayıma dahil (çözüm path'ine dahil).
         var startCoord = _solution.Cells[0];
-        var startCell  = _gridManager.GetCell(startCoord);
         _runState = new PlayerRunState
         {
             SelectedPath           = new List<GridCoord> { startCoord },
-            CurrentColorCounts     = InitialCounts(startCell),
+            CurrentColorCounts     = new Dictionary<CellColor, int>(),
             CheckpointLockedLength = 0,
             CheckpointTriggered    = false
         };
@@ -126,6 +126,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetPlayerPosition(startCoord);
         _swipeInput.SetInputEnabled(true);
         _gridManager.RefreshDirectionalHighlights(startCoord, _runState.SelectedPath);
+        _playerToken?.Teleport(_gridManager.GetWorldPosition(startCoord));
 
         _gameState = GameState.Playing;
         OnLevelStarted?.Invoke(_solution.Cells.Count);
@@ -198,6 +199,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetPlayerPosition(newCurrent);
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
+        _playerToken?.MoveTo(_gridManager.GetWorldPosition(newCurrent));
         OnUndoPerformed?.Invoke();
     }
 
@@ -219,6 +221,7 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetPlayerPosition(coord);
         _gridManager.RefreshDirectionalHighlights(coord, _runState.SelectedPath);
         _counterPanel.Refresh(newCounts);
+        _playerToken?.MoveTo(_gridManager.GetWorldPosition(coord));
         OnStepTaken?.Invoke(_runState.SelectedPath.Count);
     }
 
@@ -261,14 +264,15 @@ public class GameManager : MonoBehaviour
         return cell != null ? cell.Color : CellColor.Red;
     }
 
-    /// <summary>Undo sonrası mevcut SelectedPath'ten renk sayılarını yeniden hesaplar.</summary>
+    /// <summary>Undo sonrası mevcut SelectedPath'ten renk sayılarını yeniden hesaplar.
+    /// Start (index 0) ve End hücreleri sayılmaz.</summary>
     private Dictionary<CellColor, int> RecomputeCountsFromPath()
     {
         var counts = new Dictionary<CellColor, int>();
-        foreach (var coord in _runState.SelectedPath)
+        for (int i = 1; i < _runState.SelectedPath.Count; i++)
         {
-            CellData cell = _gridManager.GetCell(coord);
-            if (cell == null) continue;
+            CellData cell = _gridManager.GetCell(_runState.SelectedPath[i]);
+            if (cell == null || cell.IsEnd) continue;
             counts.TryGetValue(cell.Color, out int prev);
             counts[cell.Color] = prev + 1;
         }
