@@ -25,6 +25,7 @@ public class GridManager : MonoBehaviour
 
     [Header("End sprite")]
     [SerializeField] private Sprite boneSprite;
+    [SerializeField] private Sprite carrotSprite;
     [SerializeField] private Sprite prisonSprite;
 
     private int _width;
@@ -111,9 +112,11 @@ public class GridManager : MonoBehaviour
 
         _endCoord = endCoord;
 
-        // End hücresine katman sırası: kemik (ortada) → kafes (en üstte, başlangıçta görünür)
-        if (boneSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.85f);
+        // End hücresine katman sırası: kemik/havuç (ortada) → kafes (en üstte, başlangıçta görünür)
+        Sprite itemSprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null
+            ? carrotSprite : boneSprite;
+        if (itemSprite != null)
+            _views[endCoord.X, endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
 
         if (prisonSprite != null)
             _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize * 0.92f);
@@ -213,6 +216,15 @@ public class GridManager : MonoBehaviour
     /// End hücresinin kemik overlay'ini kilidi açık/kapalı olarak gösterir.
     /// GameManager, RefreshEndCellLockState() içinden çağırır.
     /// </summary>
+    /// <summary>Karakter değişince çağrılır: kemik↔havuç overlay'ini günceller.</summary>
+    public void RefreshEndCellItem()
+    {
+        Sprite itemSprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null
+            ? carrotSprite : boneSprite;
+        if (itemSprite != null)
+            _views[_endCoord.X, _endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
+    }
+
     public void SetEndCellLockVisual(bool isUnlocked)
     {
         var view = _views[_endCoord.X, _endCoord.Y];

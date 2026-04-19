@@ -140,6 +140,7 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(startCoord, _runState.SelectedPath);
         if (_playerToken != null)
         {
+            _playerToken.ApplyCharacter();
             var sr = _playerToken.GetComponent<SpriteRenderer>();
             if (sr != null && sr.sprite != null)
             {

@@ -805,7 +805,19 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private void HandleCharacterSelected(string character)
     {
-        Debug.Log($"[StartupMenuUI] Character selected: {character}");
+        CharacterManager.CharacterType type = character == "Rabbit"
+            ? CharacterManager.CharacterType.Rabbit
+            : CharacterManager.CharacterType.Dog;
+
+        CharacterManager.Select(type);
+
+        // Oyun zaten çalışıyorsa görselleri hemen güncelle
+        if (_playerToken != null)
+            _playerToken.ApplyCharacter();
+
+        if (_gridManager != null)
+            _gridManager.RefreshEndCellItem();
+
         SetOverlayState(OverlayState.Intro);
     }
 

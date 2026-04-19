@@ -7,9 +7,27 @@ using UnityEngine;
 /// </summary>
 public class PlayerToken : MonoBehaviour
 {
-    [SerializeField] private float moveDuration = 0.2f;
+    [SerializeField] private float  moveDuration = 0.2f;
+    [SerializeField] private Sprite rabbitSprite;
 
-    private Coroutine _moveCoroutine;
+    private SpriteRenderer _sr;
+    private Sprite         _dogSprite;
+    private Coroutine      _moveCoroutine;
+
+    private void Awake()
+    {
+        _sr        = GetComponent<SpriteRenderer>();
+        _dogSprite = _sr != null ? _sr.sprite : null;
+    }
+
+    /// <summary>CharacterManager.Current'e göre sprite'ı günceller.</summary>
+    public void ApplyCharacter()
+    {
+        if (_sr == null) return;
+        _sr.sprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && rabbitSprite != null
+            ? rabbitSprite
+            : _dogSprite;
+    }
 
     public void MoveTo(Vector3 targetPos)
     {
