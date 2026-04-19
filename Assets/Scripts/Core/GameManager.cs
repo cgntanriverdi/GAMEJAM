@@ -60,6 +60,9 @@ public class GameManager : MonoBehaviour
     // ── Properties (HintManager okur) ────────────────────────────────────────
 
     public PathSolution CurrentSolution => _solution;
+    public IReadOnlyList<GridCoord> CurrentPlayerPath => _runState?.SelectedPath;
+
+    public void SetPlayerInputEnabled(bool enabled) => _swipeInput?.SetInputEnabled(enabled);
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 

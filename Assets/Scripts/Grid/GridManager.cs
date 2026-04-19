@@ -209,6 +209,20 @@ public class GridManager : MonoBehaviour
             view.SetHighlight(HighlightState.None);
     }
 
+    /// <summary>Belirtilen hücreyi hint pulse animasyonuyla vurgular.</summary>
+    public void ShowHintTarget(GridCoord coord)
+    {
+        if (!IsInBounds(coord)) return;
+        _views[coord.X, coord.Y].StartHintPulse();
+    }
+
+    /// <summary>Hint pulse animasyonunu durdurur.</summary>
+    public void HideHintTarget(GridCoord coord)
+    {
+        if (!IsInBounds(coord)) return;
+        _views[coord.X, coord.Y].StopHintPulse();
+    }
+
     /// <summary>
     /// End hücresinin kemik overlay'ini kilidi açık/kapalı olarak gösterir.
     /// GameManager, RefreshEndCellLockState() içinden çağırır.

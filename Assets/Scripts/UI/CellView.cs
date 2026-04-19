@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Highlight durumları — GridManager tarafından kullanılır.
@@ -17,6 +18,9 @@ public class CellView : MonoBehaviour
     private SpriteRenderer _overlaySr;
     private SpriteRenderer _prisonOverlaySr;
     private CellData _data;
+
+    private Coroutine _hintPulse;
+    private Vector3   _baseScale;
 
     public void Initialize(CellData data)
     {
@@ -123,6 +127,38 @@ public class CellView : MonoBehaviour
     public void SetHighlight(HighlightState state)
     {
         // TODO: yönsel ok ikonlarını ve parlama efektini buraya ekle (7.6.3)
+    }
+
+    public void StartHintPulse()
+    {
+        StopHintPulse();
+        _baseScale = transform.localScale;
+        _hintPulse = StartCoroutine(PulseRoutine());
+    }
+
+    public void StopHintPulse()
+    {
+        if (_hintPulse != null)
+        {
+            StopCoroutine(_hintPulse);
+            _hintPulse = null;
+        }
+        if (_baseScale != Vector3.zero)
+            transform.localScale = _baseScale;
+    }
+
+    private IEnumerator PulseRoutine()
+    {
+        float elapsed = 0f;
+        const float speed = 6f;      // ~1 tam salınım / saniye
+        const float amplitude = 0.12f;
+        while (true)
+        {
+            float factor = 1f + amplitude * Mathf.Sin(elapsed * speed);
+            transform.localScale = _baseScale * factor;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
     }
 
     public Sprite GetSprite(CellColor color) => SpriteForCell(color);
