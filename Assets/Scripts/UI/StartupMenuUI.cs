@@ -616,7 +616,7 @@ public sealed class StartupMenuUI : MonoBehaviour
                 RectTransform rabbitImgRect = CreateRect(
                     "RabbitImage", contentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
+                    new Vector2(130f, yPositions[i]), new Vector2(114f, 114f));
                 Image rabbitImg = rabbitImgRect.gameObject.AddComponent<Image>();
                 rabbitImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("rabbit_final");
@@ -630,7 +630,7 @@ public sealed class StartupMenuUI : MonoBehaviour
                 RectTransform catImgRect = CreateRect(
                     "CatImage", contentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
+                    new Vector2(130f, yPositions[i]), new Vector2(114f, 114f));
                 Image catImg = catImgRect.gameObject.AddComponent<Image>();
                 catImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("kedi_final");
