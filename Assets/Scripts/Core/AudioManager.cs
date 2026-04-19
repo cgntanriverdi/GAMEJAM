@@ -111,8 +111,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>Gameplay müziğine geç (1 saniyelik crossfade).</summary>
     public void PlayGameplayMusic()  => CrossfadeTo(_musicGameplay);
 
-    /// <summary>Dışarıdan verilen clip'i çal (Resources.Load ile yüklenen clip'ler için).</summary>
-    public void PlayMusicClip(AudioClip clip) => CrossfadeTo(clip);
+
 
     public void StopMusic()
     {

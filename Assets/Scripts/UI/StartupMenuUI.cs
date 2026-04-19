@@ -212,12 +212,7 @@ public sealed class StartupMenuUI : MonoBehaviour
             _overlayRoot.SetActive(true);
 
         SetGameplayVisible(false);
-
-        var menuClip = Resources.Load<AudioClip>("OyunMenu");
-        if (menuClip != null)
-            AudioManager.Instance?.PlayMusicClip(menuClip);
-        else
-            AudioManager.Instance?.PlayMainMenuMusic();
+        AudioManager.Instance?.PlayMainMenuMusic();
     }
 
     private void HandlePlayPressed()
@@ -229,7 +224,7 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         SetGameplayVisible(true);
         GameManager.Instance?.BeginGameplay();
-        AudioManager.Instance?.StopMusic();
+        AudioManager.Instance?.PlayGameplayMusic();
     }
 
     private void SetGameplayVisible(bool visible)
