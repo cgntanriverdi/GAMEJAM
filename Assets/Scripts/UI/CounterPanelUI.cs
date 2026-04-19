@@ -39,17 +39,21 @@ public class CounterPanelUI : MonoBehaviour
             Destroy(child.gameObject);
         _entries.Clear();
 
+        // Renk sayısına göre spacing ve scale hesapla
+        float countScale   = CountScaleForEntries(targets.Count);
+        float countSpacing = CountSpacingForEntries(targets.Count);
+        if (_layoutGroup != null)
+            _layoutGroup.spacing = countSpacing;
+
         // Her aktif renk için bir entry oluştur
         foreach (var kvp in targets)
         {
             var entry = Instantiate(_entryPrefab, _container);
             entry.Initialize(kvp.Key, _spriteSource?.Invoke(kvp.Key));
-            entry.ApplyResponsiveScale(_responsiveScale);
+            entry.ApplyResponsiveScale(countScale);
             entry.SetCount(0, kvp.Value);
             _entries[kvp.Key] = entry;
         }
-
-        ApplyResponsiveScale(_responsiveScale);
     }
 
     public void ApplyResponsiveScale(float scale)
@@ -118,6 +122,21 @@ public class CounterPanelUI : MonoBehaviour
                 kvp.Value.SetCount(target, target);
         }
     }
+
+    // 2 renk → normal boyut; 3 → biraz küçük; 4 → daha küçük
+    private static float CountScaleForEntries(int count) => count switch
+    {
+        <= 2 => 1.00f,
+        3    => 0.82f,
+        _    => 0.70f,
+    };
+
+    private static float CountSpacingForEntries(int count) => count switch
+    {
+        <= 2 => 12f,
+        3    =>  6f,
+        _    =>  3f,
+    };
 
     private void CacheLayout()
     {
