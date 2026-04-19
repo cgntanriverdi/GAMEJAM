@@ -121,10 +121,10 @@ ProjectSettings/
 
 ## Ekip
 
-- Ali Çağan Tanrıverdi
-- Eren Gürbüz
-- Baran Elkansu
-- Kaan Uz
+- Ali Çağan Tanrıverdi - UI/UX Designer, Coder
+- Eren Gürbüz - Coder
+- Baran Elkansu - Game Designer, Coder
+- Kaan Uz - Coder
 
 ## Kullanılan Araçlar ve Kütüphaneler
 
