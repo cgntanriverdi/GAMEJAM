@@ -196,6 +196,7 @@ public class GameManager : MonoBehaviour
                 // Hangi renk taştı: hedefi aşan ilk rengi bul
                 CellColor overflowColor = FindOverflowColor(result, target);
                 _counterPanel.TriggerOverflowFeedback(overflowColor);
+                TriggerVibration();
                 OnInvalidMove(result.Outcome);
                 break;
 
@@ -206,6 +207,7 @@ public class GameManager : MonoBehaviour
                 _playerToken?.BounceToward(
                     _gridManager.GetWorldPosition(cur),
                     _gridManager.GetWorldPosition(target));
+                TriggerVibration();
                 OnInvalidMove(result.Outcome);
                 break;
             }
@@ -303,6 +305,13 @@ public class GameManager : MonoBehaviour
         OnLevelResultReady?.Invoke(result);
         OnLevelComplete?.Invoke();
         Debug.Log("[GameManager] ✓ WIN!");
+    }
+
+    private static void TriggerVibration()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        Handheld.Vibrate();
+#endif
     }
 
     private void OnInvalidMove(MoveOutcome reason)
