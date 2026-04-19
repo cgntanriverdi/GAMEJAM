@@ -58,8 +58,8 @@ public class CellView : MonoBehaviour
     public void SetAsStart()
     {
         if (_sr == null) _sr = GetComponent<SpriteRenderer>();
-        if (greySprite != null) { _sr.sprite = greySprite; _sr.color = Color.white; }
-        else                    { _sr.color  = Color.gray; }
+        if (purpleSprite != null) { _sr.sprite = purpleSprite; _sr.color = Color.white; }
+        else                      { _sr.color  = new Color(0.6f, 0f, 0.9f); }
     }
 
     public void SetAsEnd()
