@@ -61,10 +61,20 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        // PlayerPrefs durumunu oku
+        // AudioEnabled PlayerPrefs'te hiç set edilmemişse true yap
+        if (!PlayerPrefs.HasKey("AudioEnabled"))
+            PlayerPrefs.SetInt("AudioEnabled", 1);
+
         _audioEnabled = ProgressionService.Instance != null
             ? ProgressionService.Instance.AudioEnabled
-            : true;
+            : PlayerPrefs.GetInt("AudioEnabled", 1) == 1;
+
+        // Runtime'da yükle — inspector'da atanmamışsa Resources'tan al
+        if (_sfxCellSelect == null)
+            _sfxCellSelect = Resources.Load<AudioClip>("StepSound");
+
+        if (_sfxLevelComplete == null)
+            _sfxLevelComplete = Resources.Load<AudioClip>("LevelWinSound");
 
         // GameManager event'leri
         GameManager.Instance.OnStepTaken    += OnStepTaken;
@@ -101,6 +111,8 @@ public class AudioManager : MonoBehaviour
     /// <summary>Gameplay müziğine geç (1 saniyelik crossfade).</summary>
     public void PlayGameplayMusic()  => CrossfadeTo(_musicGameplay);
 
+
+
     public void StopMusic()
     {
         StopAllCoroutines();
@@ -132,6 +144,9 @@ public class AudioManager : MonoBehaviour
     }
 
     public bool IsAudioEnabled => _audioEnabled;
+
+    [ContextMenu("Enable Audio")]
+    private void DebugEnableAudio() => SetAudioEnabled(true);
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
