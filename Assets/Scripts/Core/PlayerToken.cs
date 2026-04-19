@@ -18,13 +18,18 @@ public class PlayerToken : MonoBehaviour
     {
         _sr        = GetComponent<SpriteRenderer>();
         _dogSprite = _sr != null ? _sr.sprite : null;
+        _baseScale = transform.localScale;
     }
 
     private Sprite _catSprite;
+    private Vector3 _baseScale;
 
     public void ApplyCharacter()
     {
         if (_sr == null) return;
+
+        // Varsayılan olarak köpekle aynı görsel boyuta gelmesi için kedi/tavşan oranını büyütüyoruz
+        float scaleMultiplier = 1.6f;
 
         if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit)
         {
@@ -37,6 +42,7 @@ public class PlayerToken : MonoBehaviour
                 }
             }
             _sr.sprite = rabbitSprite != null ? rabbitSprite : _dogSprite;
+            transform.localScale = _baseScale * scaleMultiplier;
         }
         else if (CharacterManager.Current == CharacterManager.CharacterType.Cat)
         {
@@ -49,10 +55,12 @@ public class PlayerToken : MonoBehaviour
                 }
             }
             _sr.sprite = _catSprite != null ? _catSprite : _dogSprite;
+            transform.localScale = _baseScale * scaleMultiplier;
         }
         else
         {
             _sr.sprite = _dogSprite;
+            transform.localScale = _baseScale;
         }
     }
 
