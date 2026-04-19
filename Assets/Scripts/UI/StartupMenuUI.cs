@@ -361,11 +361,14 @@ public sealed class StartupMenuUI : MonoBehaviour
     }
 
     private Button AddIntroButton(RectTransform parent, string name, string label,
-        Vector2 position, UnityEngine.Events.UnityAction action)
+        Vector2 position, UnityEngine.Events.UnityAction action, Vector2 btnSize = default)
     {
+        Vector2 size      = (btnSize == Vector2.zero) ? new Vector2(248f, 74f) : btnSize;
+        float   fontScale = size.x / 248f;
+
         RectTransform rect = CreateRect(name, parent,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            position, new Vector2(248f, 74f));
+            position, size);
         Image img = rect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(img, new Color(0.9f, 0.24f, 0.56f, 1f));
 
@@ -391,8 +394,8 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         RectTransform lblRect = CreateRect("Label", rect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(220f, 44f));
-        TextMeshProUGUI lbl = CreateText(lblRect, label, 28f, Color.white);
+            Vector2.zero, new Vector2(size.x * 0.88f, size.y * 0.58f));
+        TextMeshProUGUI lbl = CreateText(lblRect, label, 28f * fontScale, Color.white);
         lbl.fontStyle = FontStyles.Bold;
 
         return btn;
@@ -581,28 +584,31 @@ public sealed class StartupMenuUI : MonoBehaviour
         ApplyPanelSprite(holeImage, new Color(0.45f, 0.32f, 0.2f, 0.96f));
         holeImage.raycastTarget = false;
 
-        // Title: font %5 küçük (32→30), kart genişliğine uygun
+        // Title: font %10 küçük (32→27), kart genişliğine uygun
         RectTransform titleRect = CreateRect(
             "Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
             new Vector2(0f, -75f), new Vector2(460f, 48f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 30f, new Color(0.73f, 0.48f, 0.12f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 27f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
 
-        // Butonlar kart içinde dikey sıralı — aralık 90px (74 yükseklik + 16 boşluk)
-        // Kart: merkez (0,60), yükseklik 600 → üst:360, alt:-240 (contentRect'te)
-        // Butonlar contentRect'te: Dog=155, Cat=65, Rabbit=-25
-        string[] characters = { "Dog", "Cat", "Rabbit" };
-        float[] yPositions   = { 155f, 65f, -25f };
+        // Butonlar %10 büyük (248→273, 74→82), sol tarafa yaslanmış, aralık artırıldı (110px)
+        // Kart: merkez (0,60), genişlik 540 → sol kenar: -270 + 20 padding = -250
+        // Buton merkezi x: -250 + 273/2 = -114
+        // Kart: üst:360, alt:-240 (contentRect'te); butonlar ortalı içeride
+        Vector2 charBtnSize  = new Vector2(273f, 82f);
+        string[] characters  = { "Dog", "Cat", "Rabbit" };
+        float[] yPositions   = { 150f, 40f, -70f };   // aralık 110px
         for (int i = 0; i < characters.Length; i++)
         {
             string captured = characters[i];
             AddIntroButton(contentRect, $"{captured}Button", captured,
-                new Vector2(0f, yPositions[i]),
-                () => HandleCharacterSelected(captured));
+                new Vector2(-114f, yPositions[i]),
+                () => HandleCharacterSelected(captured),
+                charBtnSize);
         }
 
-        // Back butonu kartın tam altında: kart alt kenarı=-240, boşluk+yarı yükseklik=43 → y=-283
+        // Back butonu kartın tam altında (kart alt=-240, back yarısı=27, boşluk=16 → -283)
         RectTransform backRect = CreateRect(
             "BackButton", contentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
