@@ -9,6 +9,9 @@ public class PlayerToken : MonoBehaviour
 {
     [SerializeField] private float  moveDuration = 0.2f;
     [SerializeField] private Sprite rabbitSprite;
+    [SerializeField] private float  targetCellSizeRatio = 0.7f;
+    [SerializeField] private float  catScaleMultiplier = 1.6f;
+    [SerializeField] private float  rabbitScaleMultiplier = 1.45f;
 
     private SpriteRenderer _sr;
     private Sprite         _dogSprite;
@@ -56,6 +59,30 @@ public class PlayerToken : MonoBehaviour
         {
             _sr.sprite = _dogSprite;
         }
+    }
+
+    public void FitToCell(float cellSize)
+    {
+        if (_sr == null || _sr.sprite == null || cellSize <= 0f)
+            return;
+
+        float naturalSize = _sr.sprite.rect.width / _sr.sprite.pixelsPerUnit;
+        if (naturalSize <= 0f)
+            return;
+
+        float targetSize = cellSize * targetCellSizeRatio * GetCurrentScaleMultiplier();
+        float scale = targetSize / naturalSize;
+        transform.localScale = new Vector3(scale, scale, _baseScale.z);
+    }
+
+    private float GetCurrentScaleMultiplier()
+    {
+        return CharacterManager.Current switch
+        {
+            CharacterManager.CharacterType.Cat => catScaleMultiplier,
+            CharacterManager.CharacterType.Rabbit => rabbitScaleMultiplier,
+            _ => 1f
+        };
     }
 
     public void MoveTo(Vector3 targetPos)

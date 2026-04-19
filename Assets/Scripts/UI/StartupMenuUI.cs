@@ -59,6 +59,7 @@ public sealed class StartupMenuUI : MonoBehaviour
     private RectTransform _completePanelRect;
     private RectTransform _characterPanelRect;
     private RectTransform _introContentRect;
+    private RectTransform _characterContentRect;
     private RectTransform _mapCardRect;
     private RectTransform _mapRouteRect;
     private RectTransform _completeCardRect;
@@ -336,7 +337,7 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, 38f),
             new Vector2(280f, 120f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Chrome\nPath", 54f, new Color(0.73f, 0.48f, 0.12f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Renk\nYolu", 54f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
         titleText.lineSpacing = -12f;
 
@@ -347,7 +348,7 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, -52f),
             new Vector2(280f, 40f));
-        TextMeshProUGUI subtitleText = CreateText(subtitleRect, "Pick a route, clear it fast, earn stars.", 22f, new Color(0.42f, 0.29f, 0.16f));
+        TextMeshProUGUI subtitleText = CreateText(subtitleRect, "Rotanı seç, hızlı bitir, yıldızları kazan.", 22f, new Color(0.42f, 0.29f, 0.16f));
         subtitleText.enableWordWrapping = true;
 
         RectTransform buttonRect = CreateRect(
@@ -387,11 +388,11 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
             new Vector2(180f, 44f));
-        TextMeshProUGUI playLabel = CreateText(playLabelRect, "Play", 34f, Color.white);
+        TextMeshProUGUI playLabel = CreateText(playLabelRect, "Oyna", 34f, Color.white);
         playLabel.fontStyle = FontStyles.Bold;
 
-        // Choose Character butonu — Play ile aynı stil, hemen altında
-        AddIntroButton(_introContentRect, "ChooseCharacterButton", "Choose Character",
+        // Karakter Seç butonu — Play ile aynı stil, hemen altında
+        AddIntroButton(_introContentRect, "ChooseCharacterButton", "Karakter Seç",
             new Vector2(0f, -210f), HandleChooseCharacterPressed);
     }
 
@@ -560,27 +561,27 @@ public sealed class StartupMenuUI : MonoBehaviour
         _characterPanelRect = _characterPanel.GetComponent<RectTransform>();
 
         // contentRect kart + back butonunu barındıracak kadar geniş/uzun
-        RectTransform contentRect = CreateRect(
+        _characterContentRect = CreateRect(
             "CharacterContent",
             _characterPanel.transform,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(620f, 960f));
+            new Vector2(760f, 1120f));
 
         RectTransform ropeRect = CreateRect(
-            "Rope", contentRect,
+            "Rope", _characterContentRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -28f), new Vector2(11f, 165f));
+            new Vector2(0f, -34f), new Vector2(14f, 200f));
         Image ropeImage = ropeRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(ropeImage, new Color(0.48f, 0.33f, 0.21f, 0.92f));
         ropeImage.raycastTarget = false;
 
         // Kart ~%10 daha büyük: 540→600, 600→660; merkez (0,60) aynı
         RectTransform cardRect = CreateRect(
-            "CharacterCard", contentRect,
+            "CharacterCard", _characterContentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 60f), new Vector2(600f, 660f));
+            new Vector2(0f, 72f), new Vector2(720f, 800f));
         Image cardImage = cardRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(cardImage, new Color(0.99f, 0.94f, 0.82f, 0.98f));
         cardImage.raycastTarget = false;
@@ -596,7 +597,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         RectTransform holeRect = CreateRect(
             "CardHole", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -28f), new Vector2(32f, 32f));
+            new Vector2(0f, -34f), new Vector2(38f, 38f));
         Image holeImage = holeRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(holeImage, new Color(0.45f, 0.32f, 0.2f, 0.96f));
         holeImage.raycastTarget = false;
@@ -605,20 +606,20 @@ public sealed class StartupMenuUI : MonoBehaviour
         RectTransform titleRect = CreateRect(
             "Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -80f), new Vector2(520f, 52f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 22f, new Color(0.73f, 0.48f, 0.12f));
+            new Vector2(0f, -96f), new Vector2(640f, 74f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Karakter Seç", 58f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
 
-        // Butonlar orantılı büyüdü (316×95), sol yaslanmış, aralık 133px
-        // Kart genişlik 600 → sol kenar -300, padding 22 → buton sol -278, merkez x: -278+316/2=-120
-        // Kart: üst=390, alt=-270 (contentRect'te); butonlar: Dog=150, Cat=17, Rabbit=-116
-        Vector2 charBtnSize  = new Vector2(316f, 95f);
+        Vector2 charBtnSize  = new Vector2(390f, 116f);
+        Vector2 characterImagePosition = new Vector2(210f, 0f);
+        Vector2 characterImageSize = new Vector2(190f, 190f);
         string[] characters  = { "Dog", "Cat", "Rabbit" };
-        float[] yPositions   = { 150f, 17f, -116f };  // aralık 133px
+        string[] characterLabels = { "Köpek", "Kedi", "Tavşan" };
+        float[] yPositions   = { 206f, 24f, -158f };
         for (int i = 0; i < characters.Length; i++)
         {
             string captured = characters[i];
-            AddIntroButton(contentRect, $"{captured}Button", captured,
+            AddIntroButton(_characterContentRect, $"{captured}Button", characterLabels[i],
                 new Vector2(-120f, yPositions[i]),
                 () => HandleCharacterSelected(captured),
                 charBtnSize);
@@ -626,9 +627,9 @@ public sealed class StartupMenuUI : MonoBehaviour
             if (captured == "Rabbit")
             {
                 RectTransform rabbitImgRect = CreateRect(
-                    "RabbitImage", contentRect,
+                    "RabbitImage", _characterContentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(114f, 114f));
+                    new Vector2(characterImagePosition.x, yPositions[i]), characterImageSize);
                 Image rabbitImg = rabbitImgRect.gameObject.AddComponent<Image>();
                 rabbitImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("rabbit_final");
@@ -640,9 +641,9 @@ public sealed class StartupMenuUI : MonoBehaviour
             else if (captured == "Cat")
             {
                 RectTransform catImgRect = CreateRect(
-                    "CatImage", contentRect,
+                    "CatImage", _characterContentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(114f, 114f));
+                    new Vector2(characterImagePosition.x, yPositions[i]), characterImageSize);
                 Image catImg = catImgRect.gameObject.AddComponent<Image>();
                 catImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("kedi_final");
@@ -654,9 +655,9 @@ public sealed class StartupMenuUI : MonoBehaviour
             else if (captured == "Dog")
             {
                 RectTransform dogImgRect = CreateRect(
-                    "DogImage", contentRect,
+                    "DogImage", _characterContentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
+                    new Vector2(characterImagePosition.x, yPositions[i]), characterImageSize);
                 Image dogImg = dogImgRect.gameObject.AddComponent<Image>();
                 dogImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("dog_greenscreen-removebg-preview");
@@ -667,11 +668,11 @@ public sealed class StartupMenuUI : MonoBehaviour
             }
         }
 
-        // Back butonu kartın tam altında: kart alt=-270, boşluk 16, back yarısı 27 → y=-313
+        // Geri butonu kartın altında, büyük dokunma alanıyla durur.
         RectTransform backRect = CreateRect(
-            "BackButton", contentRect,
+            "BackButton", _characterContentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -313f), new Vector2(198f, 59f));
+            new Vector2(0f, -402f), new Vector2(330f, 92f));
         Image backImg = backRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(backImg, new Color(0.55f, 0.55f, 0.6f, 0.9f));
         Button backBtn = backRect.gameObject.AddComponent<Button>();
@@ -679,8 +680,8 @@ public sealed class StartupMenuUI : MonoBehaviour
         backBtn.onClick.AddListener(() => SetOverlayState(OverlayState.Intro));
         RectTransform backLblRect = CreateRect("Label", backRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(150f, 34f));
-        TextMeshProUGUI backLbl = CreateText(backLblRect, "Back", 26f, Color.white);
+            Vector2.zero, new Vector2(280f, 54f));
+        TextMeshProUGUI backLbl = CreateText(backLblRect, "Geri", 44f, Color.white);
         backLbl.fontStyle = FontStyles.Bold;
     }
 
@@ -721,10 +722,13 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 1f),
             new Vector2(0f, -48f),
             new Vector2(320f, 48f));
-        _completeTitleText = CreateText(_completeTitleRect, "PERSONAL\nBEST!", 34f, new Color(0.53f, 0.3f, 0f));
+        _completeTitleText = CreateText(_completeTitleRect, "KİŞİSEL REKOR: 00:00", 44f, new Color(0.53f, 0.3f, 0f));
         _completeTitleText.fontStyle = FontStyles.Bold;
-        _completeTitleText.lineSpacing = -16f;
-        _completeTitleText.characterSpacing = -2f;
+        _completeTitleText.enableAutoSizing = true;
+        _completeTitleText.fontSizeMax = 44f;
+        _completeTitleText.fontSizeMin = 28f;
+        _completeTitleText.enableWordWrapping = false;
+        _completeTitleText.characterSpacing = 0f;
 
         _completeStarsRect = CreateRect(
             "Stars",
@@ -742,8 +746,13 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, -18f),
             new Vector2(320f, 32f));
-        _completeTimeText = CreateText(_completeTimeRect, "00:00", 18f, new Color(0.38f, 0.35f, 0.26f));
+        _completeTimeText = CreateText(_completeTimeRect, "Şu Anki Süre: 00:00", 34f, new Color(0.38f, 0.35f, 0.26f));
         _completeTimeText.fontStyle = FontStyles.Bold;
+        _completeTimeText.enableAutoSizing = true;
+        _completeTimeText.fontSizeMax = 34f;
+        _completeTimeText.fontSizeMin = 22f;
+        _completeTimeText.enableWordWrapping = false;
+        _completeTimeText.characterSpacing = 0f;
         _completeTimeRect.gameObject.SetActive(false);
 
         _completeBestRect = CreateRect(
@@ -792,9 +801,9 @@ public sealed class StartupMenuUI : MonoBehaviour
         _completeBestTimeText.alignment = TextAlignmentOptions.Left;
         _completeBestRect.gameObject.SetActive(false);
 
-        CreateActionButton(_completeContentRect, "MapButton", "Map", new Vector2(-118f, -118f), HandleMapPressed, out _completeMapButtonRect, out _completeMapButtonText);
-        CreateActionButton(_completeContentRect, "ReplayButton", "Retry", new Vector2(0f, -118f), HandleReplayPressed, out _completeReplayButtonRect, out _completeReplayButtonText);
-        _nextButton = CreateActionButton(_completeContentRect, "NextButton", "Next", new Vector2(118f, -118f), HandleNextPressed, out _completeNextButtonRect, out _completeNextButtonText);
+        CreateActionButton(_completeContentRect, "MapButton", "Harita", new Vector2(-118f, -118f), HandleMapPressed, out _completeMapButtonRect, out _completeMapButtonText);
+        CreateActionButton(_completeContentRect, "ReplayButton", "Tekrar", new Vector2(0f, -118f), HandleReplayPressed, out _completeReplayButtonRect, out _completeReplayButtonText);
+        _nextButton = CreateActionButton(_completeContentRect, "NextButton", "Sonraki", new Vector2(118f, -118f), HandleNextPressed, out _completeNextButtonRect, out _completeNextButtonText);
     }
 
     private Button CreateActionButton(
@@ -860,6 +869,10 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(92f, 32f));
         labelText = CreateText(labelRect, label, 22f, textColor);
         labelText.fontStyle = FontStyles.Bold;
+        labelText.enableAutoSizing = true;
+        labelText.fontSizeMax = 22f;
+        labelText.fontSizeMin = 14f;
+        labelText.enableWordWrapping = false;
 
         return button;
     }
@@ -869,12 +882,14 @@ public sealed class StartupMenuUI : MonoBehaviour
         switch (label)
         {
             case "Map":
+            case "Harita":
                 fillColor = new Color(0.89f, 0.87f, 0.75f, 1f);
                 outlineColor = new Color(0.48f, 0.47f, 0.39f, 0.96f);
                 textColor = new Color(0.2f, 0.18f, 0.13f, 1f);
                 return;
 
             case "Retry":
+            case "Tekrar":
                 fillColor = new Color(0.99f, 0.75f, 0.02f, 1f);
                 outlineColor = new Color(0.33f, 0.24f, 0f, 0.96f);
                 textColor = Color.white;
@@ -991,7 +1006,11 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         // Oyun zaten çalışıyorsa görselleri hemen güncelle
         if (_playerToken != null)
+        {
             _playerToken.ApplyCharacter();
+            if (_gridManager != null)
+                _playerToken.FitToCell(_gridManager.CellSize);
+        }
 
         if (_gridManager != null)
             _gridManager.RefreshEndCellItem();
@@ -1069,11 +1088,16 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private void UpdateCompletePanel(LevelCompletionResult result)
     {
+        string bestTime = FormatTime(float.IsPositiveInfinity(result.BestTimeSeconds)
+            ? result.ElapsedSeconds
+            : result.BestTimeSeconds);
+        string currentTime = FormatTime(result.ElapsedSeconds);
+
         if (_completeTitleText != null)
-            _completeTitleText.text = "PERSONAL\nBEST!";
+            _completeTitleText.text = $"KİŞİSEL REKOR: {bestTime}";
 
         if (_completeTimeText != null)
-            _completeTimeText.text = FormatTime(result.ElapsedSeconds);
+            _completeTimeText.text = $"ŞU ANKİ SÜRE: {currentTime}";
 
         if (_completeTimeRect != null)
             _completeTimeRect.gameObject.SetActive(true);
@@ -1186,6 +1210,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         _completePanelRect = null;
         _characterPanelRect = null;
         _introContentRect = null;
+        _characterContentRect = null;
         _mapCardRect = null;
         _mapRouteRect = null;
         _completeCardRect = null;
@@ -1453,6 +1478,7 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         bool portrait = safeAreaRect.height >= safeAreaRect.width;
         LayoutIntroPanel(safeAreaRect.size);
+        LayoutCharacterPanel(safeAreaRect.size);
         LayoutMapPanel(safeAreaRect.size, portrait, forceRouteRebuild);
         LayoutCompletePanel(safeAreaRect.size);
     }
@@ -1467,6 +1493,16 @@ public sealed class StartupMenuUI : MonoBehaviour
         introScale = Mathf.Min(introScale, introFitScale);
         _introContentRect.anchoredPosition = new Vector2(0f, safeAreaSize.y * 0.015f);
         _introContentRect.localScale = new Vector3(introScale, introScale, 1f);
+    }
+
+    private void LayoutCharacterPanel(Vector2 safeAreaSize)
+    {
+        if (_characterContentRect == null)
+            return;
+
+        float characterScale = ComputeResponsiveScale(safeAreaSize, new Vector2(360f, 660f), 1f, 1.22f, 0.62f);
+        _characterContentRect.anchoredPosition = new Vector2(0f, safeAreaSize.y * 0.01f);
+        _characterContentRect.localScale = new Vector3(characterScale, characterScale, 1f);
     }
 
     private void LayoutMapPanel(Vector2 safeAreaSize, bool portrait, bool forceRouteRebuild)
@@ -1507,16 +1543,16 @@ public sealed class StartupMenuUI : MonoBehaviour
         if (_completeCardRect == null || _completeContentRect == null)
             return;
 
-        float cardScale = ComputeResponsiveScale(safeAreaSize, new Vector2(390f, 780f), 1.42f, 2.15f, 0.64f);
-        float width = Mathf.Clamp(safeAreaSize.x * 1.12f, 430f, 660f);
-        float height = Mathf.Clamp(430f * cardScale, 455f, 720f);
-        float innerWidth = Mathf.Max(346f, width - (72f * cardScale));
-        float innerHeight = Mathf.Max(330f, height - (72f * cardScale));
-        float typographyScale = ComputeResponsiveScale(new Vector2(innerWidth, innerHeight), new Vector2(340f, 330f), 1.24f, 1.9f, 0.58f);
-        float buttonGap = Mathf.Clamp(12f * typographyScale, 12f, 22f);
-        float buttonWidth = Mathf.Clamp((innerWidth - (buttonGap * 2f)) / 3f, 116f, 178f);
-        float buttonHeight = Mathf.Clamp(72f * typographyScale, 76f, 112f);
-        float buttonY = -(innerHeight * 0.34f);
+        float cardScale = ComputeResponsiveScale(safeAreaSize, new Vector2(390f, 780f), 1.72f, 2.65f, 0.64f);
+        float width = Mathf.Clamp(safeAreaSize.x * 1.34f, 540f, 820f);
+        float height = Mathf.Clamp(520f * cardScale, 640f, 900f);
+        float innerWidth = Mathf.Max(430f, width - (76f * cardScale));
+        float innerHeight = Mathf.Max(470f, height - (76f * cardScale));
+        float typographyScale = ComputeResponsiveScale(new Vector2(innerWidth, innerHeight), new Vector2(430f, 470f), 1.44f, 2.25f, 0.58f);
+        float buttonGap = Mathf.Clamp(16f * typographyScale, 18f, 34f);
+        float buttonWidth = Mathf.Clamp((innerWidth - (buttonGap * 2f)) / 3f, 148f, 230f);
+        float buttonHeight = Mathf.Clamp(84f * typographyScale, 108f, 150f);
+        float buttonY = -(innerHeight * 0.36f);
 
         _completeCardRect.anchoredPosition = Vector2.zero;
         _completeCardRect.sizeDelta = new Vector2(width, height);
@@ -1526,29 +1562,35 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         if (_completeTitleRect != null)
         {
-            _completeTitleRect.anchoredPosition = new Vector2(0f, -82f * typographyScale);
-            _completeTitleRect.sizeDelta = new Vector2(innerWidth, 112f * typographyScale);
+            _completeTitleRect.anchoredPosition = new Vector2(0f, -130f * typographyScale);
+            _completeTitleRect.sizeDelta = new Vector2(innerWidth * 0.96f, 92f * typographyScale);
         }
 
         if (_completeTitleText != null)
-            _completeTitleText.fontSize = Mathf.Clamp(43f * typographyScale, 52f, 84f);
+        {
+            _completeTitleText.fontSize = Mathf.Clamp(36f * typographyScale, 46f, 74f);
+            _completeTitleText.fontSizeMax = Mathf.Clamp(36f * typographyScale, 46f, 74f);
+        }
 
         if (_completeStarsRect != null)
         {
-            _completeStarsRect.anchoredPosition = new Vector2(0f, Mathf.Clamp(70f * typographyScale, 72f, 112f));
-            _completeStarsRect.sizeDelta = new Vector2(width, Mathf.Clamp(150f * typographyScale, 152f, 240f));
+            _completeStarsRect.anchoredPosition = new Vector2(0f, Mathf.Clamp(86f * typographyScale, 108f, 160f));
+            _completeStarsRect.sizeDelta = new Vector2(width, Mathf.Clamp(182f * typographyScale, 210f, 320f));
         }
 
-        ApplyCompleteStarClusterLayout(_completeStarsWidget, Mathf.Clamp(142f * typographyScale, 150f, 220f), Mathf.Clamp(10f * typographyScale, 10f, 18f));
+        ApplyCompleteStarClusterLayout(_completeStarsWidget, Mathf.Clamp(164f * typographyScale, 190f, 280f), Mathf.Clamp(12f * typographyScale, 14f, 24f));
 
         if (_completeTimeRect != null)
         {
-            _completeTimeRect.anchoredPosition = new Vector2(0f, (innerHeight * 0.5f) - (150f * typographyScale));
-            _completeTimeRect.sizeDelta = new Vector2(innerWidth * 0.86f, 38f * typographyScale);
+            _completeTimeRect.anchoredPosition = new Vector2(0f, (innerHeight * 0.5f) - (196f * typographyScale));
+            _completeTimeRect.sizeDelta = new Vector2(innerWidth * 0.96f, 76f * typographyScale);
         }
 
         if (_completeTimeText != null)
-            _completeTimeText.fontSize = Mathf.Clamp(24f * typographyScale, 26f, 42f);
+        {
+            _completeTimeText.fontSize = Mathf.Clamp(30f * typographyScale, 38f, 62f);
+            _completeTimeText.fontSizeMax = Mathf.Clamp(30f * typographyScale, 38f, 62f);
+        }
 
         if (_completeBestRect != null)
         {
@@ -1981,7 +2023,10 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         buttonRect.anchoredPosition = anchoredPosition;
         buttonRect.sizeDelta = new Vector2(width, height);
-        labelText.fontSize = Mathf.Clamp(23f * scale, 23f, 36f);
+        float fontSize = Mathf.Clamp(28f * scale, 30f, 46f);
+        labelText.fontSize = fontSize;
+        labelText.fontSizeMax = fontSize;
+        labelText.fontSizeMin = Mathf.Clamp(18f * scale, 20f, 30f);
         labelText.rectTransform.sizeDelta = new Vector2(width * 0.9f, height * 0.58f);
 
         if (buttonRect.Find("BottomShade") is RectTransform shadeRect)
@@ -2072,7 +2117,7 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         RectTransform cardRect = CreateRect("Card", panelRoot.transform,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(660f, 640f));
+            Vector2.zero, new Vector2(660f, 880f));
         var cardImg = cardRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(cardImg, new Color(1f, 0.99f, 0.95f, 0.98f));
 
@@ -2116,22 +2161,48 @@ public sealed class StartupMenuUI : MonoBehaviour
         CreateVolumeSlider(cardRect, new Vector2(0f, -122f), new Vector2(520f, 58f),
             initSfx, v => AudioManager.Instance?.SetSfxVolume(v), new Color(0.36f, 0.9f, 0.34f, 1f));
 
-        CreateSettingsCloseButton(cardRect);
+        CreateSettingsActionButton(
+            cardRect,
+            "MainMenuButton",
+            "Ana Menüye Dön",
+            new Vector2(0f, -250f),
+            new Vector2(500f, 86f),
+            "Next",
+            HandleSettingsMainMenuPressed,
+            38f);
+
+        CreateSettingsActionButton(
+            cardRect,
+            "CloseButton",
+            "Kapat",
+            new Vector2(0f, -356f),
+            new Vector2(340f, 86f),
+            "Map",
+            ToggleSettingsPanel,
+            38f);
 
         _settingsPanel.SetActive(false);
     }
 
-    private Button CreateSettingsCloseButton(Transform parent)
+    private Button CreateSettingsActionButton(
+        Transform parent,
+        string name,
+        string label,
+        Vector2 anchoredPosition,
+        Vector2 size,
+        string styleKey,
+        UnityEngine.Events.UnityAction action,
+        float fontSize)
     {
         RectTransform buttonRect = CreateRect(
-            "CloseButton",
+            name,
             parent,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -246f),
-            new Vector2(340f, 108f));
+            anchoredPosition,
+            size);
 
-        GetCompleteButtonStyle("Next", out Color fillColor, out Color outlineColor, out Color textColor);
+        GetCompleteButtonStyle(styleKey, out Color fillColor, out Color outlineColor, out Color textColor);
 
         Image buttonImage = buttonRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(buttonImage, fillColor);
@@ -2168,7 +2239,7 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         Button button = buttonRect.gameObject.AddComponent<Button>();
         button.targetGraphic = buttonImage;
-        button.onClick.AddListener(ToggleSettingsPanel);
+        button.onClick.AddListener(action);
 
         RectTransform labelRect = CreateRect(
             "Label",
@@ -2176,10 +2247,22 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(300f, 66f));
-        TextMeshProUGUI labelText = CreateText(labelRect, "Kapat", 44f, textColor);
+            new Vector2(size.x - 46f, size.y * 0.62f));
+        TextMeshProUGUI labelText = CreateText(labelRect, label, fontSize, textColor);
         labelText.fontStyle = FontStyles.Bold;
+        labelText.enableAutoSizing = true;
+        labelText.fontSizeMax = fontSize;
+        labelText.fontSizeMin = 20f;
+        labelText.enableWordWrapping = false;
         return button;
+    }
+
+    private void HandleSettingsMainMenuPressed()
+    {
+        if (_settingsPanel != null)
+            _settingsPanel.SetActive(false);
+
+        SetOverlayState(OverlayState.Intro);
     }
 
     private void ToggleSettingsPanel()
