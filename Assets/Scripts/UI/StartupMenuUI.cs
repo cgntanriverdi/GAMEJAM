@@ -589,16 +589,16 @@ public sealed class StartupMenuUI : MonoBehaviour
             "Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
             new Vector2(0f, -75f), new Vector2(460f, 48f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 27f, new Color(0.73f, 0.48f, 0.12f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 22f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
 
         // Butonlar %10 büyük (248→273, 74→82), sol tarafa yaslanmış, aralık artırıldı (110px)
         // Kart: merkez (0,60), genişlik 540 → sol kenar: -270 + 20 padding = -250
         // Buton merkezi x: -250 + 273/2 = -114
         // Kart: üst:360, alt:-240 (contentRect'te); butonlar ortalı içeride
-        Vector2 charBtnSize  = new Vector2(273f, 82f);
+        Vector2 charBtnSize  = new Vector2(287f, 86f);
         string[] characters  = { "Dog", "Cat", "Rabbit" };
-        float[] yPositions   = { 150f, 40f, -70f };   // aralık 110px
+        float[] yPositions   = { 150f, 29f, -92f };   // aralık 121px
         for (int i = 0; i < characters.Length; i++)
         {
             string captured = characters[i];
