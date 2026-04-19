@@ -392,11 +392,16 @@ public sealed class StartupMenuUI : MonoBehaviour
         cb.disabledColor = new Color(1f, 1f, 1f, 0.6f);
         btn.colors = cb;
 
+        // Label her yönden buton içinde boşluklu kalsın; uzun metinler otomatik küçülsün
         RectTransform lblRect = CreateRect("Label", rect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(size.x * 0.88f, size.y * 0.58f));
+            Vector2.zero, new Vector2(size.x * 0.76f, size.y * 0.52f));
         TextMeshProUGUI lbl = CreateText(lblRect, label, 28f * fontScale, Color.white);
-        lbl.fontStyle = FontStyles.Bold;
+        lbl.fontStyle           = FontStyles.Bold;
+        lbl.enableAutoSizing    = true;
+        lbl.fontSizeMax         = 28f * fontScale;
+        lbl.fontSizeMin         = 10f;
+        lbl.enableWordWrapping  = false;
 
         return btn;
     }
@@ -549,21 +554,21 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(560f, 860f));
+            new Vector2(620f, 960f));
 
         RectTransform ropeRect = CreateRect(
             "Rope", contentRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -28f), new Vector2(10f, 150f));
+            new Vector2(0f, -28f), new Vector2(11f, 165f));
         Image ropeImage = ropeRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(ropeImage, new Color(0.48f, 0.33f, 0.21f, 0.92f));
         ropeImage.raycastTarget = false;
 
-        // Kart 1.5x büyütüldü: 360→540, 400→600; merkez (0,60) aynı
+        // Kart ~%10 daha büyük: 540→600, 600→660; merkez (0,60) aynı
         RectTransform cardRect = CreateRect(
             "CharacterCard", contentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 60f), new Vector2(540f, 600f));
+            new Vector2(0f, 60f), new Vector2(600f, 660f));
         Image cardImage = cardRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(cardImage, new Color(0.99f, 0.94f, 0.82f, 0.98f));
         cardImage.raycastTarget = false;
@@ -584,35 +589,34 @@ public sealed class StartupMenuUI : MonoBehaviour
         ApplyPanelSprite(holeImage, new Color(0.45f, 0.32f, 0.2f, 0.96f));
         holeImage.raycastTarget = false;
 
-        // Title: font %10 küçük (32→27), kart genişliğine uygun
+        // Title: kart genişliğine uygun
         RectTransform titleRect = CreateRect(
             "Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -75f), new Vector2(460f, 48f));
+            new Vector2(0f, -80f), new Vector2(520f, 52f));
         TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 22f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
 
-        // Butonlar %10 büyük (248→273, 74→82), sol tarafa yaslanmış, aralık artırıldı (110px)
-        // Kart: merkez (0,60), genişlik 540 → sol kenar: -270 + 20 padding = -250
-        // Buton merkezi x: -250 + 273/2 = -114
-        // Kart: üst:360, alt:-240 (contentRect'te); butonlar ortalı içeride
-        Vector2 charBtnSize  = new Vector2(287f, 86f);
+        // Butonlar orantılı büyüdü (316×95), sol yaslanmış, aralık 133px
+        // Kart genişlik 600 → sol kenar -300, padding 22 → buton sol -278, merkez x: -278+316/2=-120
+        // Kart: üst=390, alt=-270 (contentRect'te); butonlar: Dog=150, Cat=17, Rabbit=-116
+        Vector2 charBtnSize  = new Vector2(316f, 95f);
         string[] characters  = { "Dog", "Cat", "Rabbit" };
-        float[] yPositions   = { 150f, 29f, -92f };   // aralık 121px
+        float[] yPositions   = { 150f, 17f, -116f };  // aralık 133px
         for (int i = 0; i < characters.Length; i++)
         {
             string captured = characters[i];
             AddIntroButton(contentRect, $"{captured}Button", captured,
-                new Vector2(-114f, yPositions[i]),
+                new Vector2(-120f, yPositions[i]),
                 () => HandleCharacterSelected(captured),
                 charBtnSize);
         }
 
-        // Back butonu kartın tam altında (kart alt=-240, back yarısı=27, boşluk=16 → -283)
+        // Back butonu kartın tam altında: kart alt=-270, boşluk 16, back yarısı 27 → y=-313
         RectTransform backRect = CreateRect(
             "BackButton", contentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -283f), new Vector2(180f, 54f));
+            new Vector2(0f, -313f), new Vector2(198f, 59f));
         Image backImg = backRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(backImg, new Color(0.55f, 0.55f, 0.6f, 0.9f));
         Button backBtn = backRect.gameObject.AddComponent<Button>();
@@ -620,8 +624,8 @@ public sealed class StartupMenuUI : MonoBehaviour
         backBtn.onClick.AddListener(() => SetOverlayState(OverlayState.Intro));
         RectTransform backLblRect = CreateRect("Label", backRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(160f, 36f));
-        TextMeshProUGUI backLbl = CreateText(backLblRect, "Back", 24f, Color.white);
+            Vector2.zero, new Vector2(150f, 34f));
+        TextMeshProUGUI backLbl = CreateText(backLblRect, "Back", 26f, Color.white);
         backLbl.fontStyle = FontStyles.Bold;
     }
 
