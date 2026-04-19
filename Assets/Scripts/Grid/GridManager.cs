@@ -113,10 +113,10 @@ public class GridManager : MonoBehaviour
 
         // End hücresine katman sırası: kemik (ortada) → kafes (en üstte, başlangıçta görünür)
         if (boneSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
+            _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.85f);
 
         if (prisonSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize * 0.96f);
+            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize * 0.92f);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
