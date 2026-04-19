@@ -200,10 +200,15 @@ public class GameManager : MonoBehaviour
                 break;
 
             case MoveOutcome.InvalidEndLocked:
-                // Kemik kilidi açık değil: hedefe doğru sekip geri dön
-                _playerToken?.BounceToward(_gridManager.GetWorldPosition(target));
+            {
+                // Kemik kilidi açık değil: oyuncunun gerçek hücresinden hedefe sekip geri dön
+                GridCoord cur = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+                _playerToken?.BounceToward(
+                    _gridManager.GetWorldPosition(cur),
+                    _gridManager.GetWorldPosition(target));
                 OnInvalidMove(result.Outcome);
                 break;
+            }
 
             case MoveOutcome.InvalidNotNeighbor:
             case MoveOutcome.InvalidAlreadyVisited:
