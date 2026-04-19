@@ -129,7 +129,10 @@ public class GridManager : MonoBehaviour
             if (_catFoodSprite != null) itemSprite = _catFoodSprite;
         }
         if (itemSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
+        {
+            float sizeMultiplier = (CharacterManager.Current == CharacterManager.CharacterType.Rabbit) ? 1.1f : 1.0f;
+            _views[endCoord.X, endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f * sizeMultiplier);
+        }
 
         if (prisonSprite != null)
             _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize * 0.92f);
@@ -248,7 +251,10 @@ public class GridManager : MonoBehaviour
             if (_catFoodSprite != null) itemSprite = _catFoodSprite;
         }
         if (itemSprite != null)
-            _views[_endCoord.X, _endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
+        {
+            float sizeMultiplier = (CharacterManager.Current == CharacterManager.CharacterType.Rabbit) ? 1.1f : 1.0f;
+            _views[_endCoord.X, _endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f * sizeMultiplier);
+        }
     }
 
     public void SetEndCellLockVisual(bool isUnlocked)

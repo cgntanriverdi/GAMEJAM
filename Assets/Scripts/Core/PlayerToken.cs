@@ -29,7 +29,8 @@ public class PlayerToken : MonoBehaviour
         if (_sr == null) return;
 
         // Varsayılan olarak köpekle aynı görsel boyuta gelmesi için kedi/tavşan oranını büyütüyoruz
-        float scaleMultiplier = 1.6f;
+        // %20 daha da büyütüldü: 1.6 * 1.2 = 1.92
+        float scaleMultiplier = 1.92f;
 
         if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit)
         {
