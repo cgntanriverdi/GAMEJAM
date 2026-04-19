@@ -13,6 +13,9 @@ using UnityEngine;
 [DefaultExecutionOrder(0)]
 public class AudioManager : MonoBehaviour
 {
+    private const string StepSoundResourceName = "StepSound";
+    private const string LevelWinSoundResourceName = "LevelWinSound";
+
     // ── Singleton ─────────────────────────────────────────────────────────────
 
     public static AudioManager Instance { get; private set; }
@@ -23,7 +26,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip _sfxCellSelect;    // geçerli adım
     [SerializeField] private AudioClip _sfxInvalidSwipe;  // geçersiz yön
     [SerializeField] private AudioClip _sfxUndo;          // undo
-[SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
+    [SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
     [SerializeField] private AudioClip _sfxHintReveal;    // hint açıldı
 
     [Header("Music Clips")]
@@ -44,6 +47,7 @@ public class AudioManager : MonoBehaviour
     private AudioSource _musicB;
     private AudioSource _activeMusic;   // o an çalan kaynak
     private bool        _audioEnabled;
+    private bool        _audioStateInitialized;
 
     private Coroutine _crossfadeCoroutine;
     private Coroutine _gameplayLoopCoroutine;
@@ -60,51 +64,56 @@ public class AudioManager : MonoBehaviour
         _musicA    = CreateSource(loop: true);
         _musicB    = CreateSource(loop: true);
         _activeMusic = _musicA;  // başlangıçta ikisi de sessiz
+
+        InitializeAudioState();
+        LoadRequiredSfxClips();
     }
 
     private void Start()
     {
-        // AudioEnabled PlayerPrefs'te hiç set edilmemişse true yap
-        if (!PlayerPrefs.HasKey("AudioEnabled"))
-            PlayerPrefs.SetInt("AudioEnabled", 1);
-
-        _audioEnabled = ProgressionService.Instance != null
-            ? ProgressionService.Instance.AudioEnabled
-            : PlayerPrefs.GetInt("AudioEnabled", 1) == 1;
-
-        // Runtime'da yükle — inspector'da atanmamışsa Resources'tan al
-        if (_sfxCellSelect == null)
-            _sfxCellSelect = Resources.Load<AudioClip>("StepSound");
-
-        if (_sfxLevelComplete == null)
-            _sfxLevelComplete = Resources.Load<AudioClip>("LevelWinSound");
-
-        // GameManager event'leri
-        GameManager.Instance.OnStepTaken    += OnStepTaken;
-        GameManager.Instance.OnLevelComplete += OnLevelComplete;
-        GameManager.Instance.OnMoveFailed    += OnMoveFailed;
-        GameManager.Instance.OnUndoPerformed += OnUndoPerformed;
+        // GameManager event'leri. Step ve win sesleri GameManager'dan direkt çağrılır;
+        // invalid/undo ise event üzerinden kalır.
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnMoveFailed    += OnMoveFailed;
+            GameManager.Instance.OnUndoPerformed += OnUndoPerformed;
+        }
     }
 
     private void OnDestroy()
     {
         if (GameManager.Instance == null) return;
-        GameManager.Instance.OnStepTaken    -= OnStepTaken;
-        GameManager.Instance.OnLevelComplete -= OnLevelComplete;
         GameManager.Instance.OnMoveFailed    -= OnMoveFailed;
         GameManager.Instance.OnUndoPerformed -= OnUndoPerformed;
     }
 
     // ── GameManager event handlers ────────────────────────────────────────────
 
-    private void OnStepTaken(int _)           => PlaySFX(_sfxCellSelect);
-    private void OnLevelComplete()            { StopGameplayLoop(); PlaySFX(_sfxLevelComplete); }
     private void OnMoveFailed(MoveOutcome _)  => PlaySFX(_sfxInvalidSwipe);
     private void OnUndoPerformed()            => PlaySFX(_sfxUndo);
 
     // ── Public SFX — HintManager çağırır ────────────────────────────────────
 
     public void PlayHintReveal()  => PlaySFX(_sfxHintReveal);
+
+    public void PlayStepSound()
+    {
+        EnsureAudioReady();
+        if (_sfxCellSelect == null)
+            LoadRequiredSfxClips();
+
+        PlaySFX(_sfxCellSelect);
+    }
+
+    public void PlayLevelWinSound()
+    {
+        EnsureAudioReady();
+        if (_sfxLevelComplete == null)
+            LoadRequiredSfxClips();
+
+        StopGameplayLoop();
+        PlaySFX(_sfxLevelComplete);
+    }
 
     // ── Music API ─────────────────────────────────────────────────────────────
 
@@ -188,8 +197,45 @@ public class AudioManager : MonoBehaviour
 
     private void PlaySFX(AudioClip clip)
     {
+        EnsureAudioReady();
         if (!_audioEnabled || clip == null) return;
+        _sfxSource.volume = 1f;
         _sfxSource.PlayOneShot(clip, _sfxVolume);
+    }
+
+    private void InitializeAudioState()
+    {
+        if (!PlayerPrefs.HasKey("AudioEnabled"))
+        {
+            PlayerPrefs.SetInt("AudioEnabled", 1);
+            PlayerPrefs.Save();
+        }
+
+        _audioEnabled = ProgressionService.Instance != null
+            ? ProgressionService.Instance.AudioEnabled
+            : PlayerPrefs.GetInt("AudioEnabled", 1) == 1;
+        _audioStateInitialized = true;
+    }
+
+    private void EnsureAudioReady()
+    {
+        if (!_audioStateInitialized)
+            InitializeAudioState();
+    }
+
+    private void LoadRequiredSfxClips()
+    {
+        AudioClip stepSound = Resources.Load<AudioClip>(StepSoundResourceName);
+        if (stepSound != null)
+            _sfxCellSelect = stepSound;
+        else
+            Debug.LogWarning($"[AudioManager] Resources/{StepSoundResourceName} bulunamadı; step SFX inspector değerine düşüyor.");
+
+        AudioClip levelWinSound = Resources.Load<AudioClip>(LevelWinSoundResourceName);
+        if (levelWinSound != null)
+            _sfxLevelComplete = levelWinSound;
+        else
+            Debug.LogWarning($"[AudioManager] Resources/{LevelWinSoundResourceName} bulunamadı; win SFX inspector değerine düşüyor.");
     }
 
     // Dışarıdan çağrıldığında gameplay loop'u iptal edip crossfade başlatır.
@@ -202,6 +248,7 @@ public class AudioManager : MonoBehaviour
     // Gameplay loop içinden çağrılır — loop coroutine'i kesmez.
     private void CrossfadeToInternal(AudioClip clip)
     {
+        EnsureAudioReady();
         if (clip == null) return;
         if (_activeMusic.clip == clip && _activeMusic.isPlaying) return;
 
@@ -271,7 +318,7 @@ public class AudioManager : MonoBehaviour
         var src      = gameObject.AddComponent<AudioSource>();
         src.loop         = loop;
         src.playOnAwake  = false;
-        src.volume       = 0f;
+        src.volume       = loop ? 0f : 1f;
         return src;
     }
 }

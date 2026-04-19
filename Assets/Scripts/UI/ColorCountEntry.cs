@@ -56,7 +56,7 @@ public class ColorCountEntry : MonoBehaviour
         CacheLayoutReferences();
         CaptureLayoutIfNeeded();
 
-        _responsiveScale = Mathf.Clamp(scale, 0.55f, 1.9f);
+        _responsiveScale = Mathf.Clamp(scale, 0.72f, 1.9f);
         if (_rect != null)
             _rect.sizeDelta = _baseEntrySize * _responsiveScale;
 
@@ -73,7 +73,7 @@ public class ColorCountEntry : MonoBehaviour
         }
 
         if (_countText != null)
-            _countText.fontSize = Mathf.Clamp(_baseFontSize * _responsiveScale, _baseFontSize * 0.55f, _baseFontSize * 1.85f);
+            _countText.fontSize = Mathf.Clamp(_baseFontSize * _responsiveScale, _baseFontSize * 0.78f, _baseFontSize * 1.85f);
     }
 
     // ── State ─────────────────────────────────────────────────────────────────

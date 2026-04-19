@@ -261,6 +261,7 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(coord, _runState.SelectedPath);
         _counterPanel.Refresh(newCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(coord));
+        AudioManager.Instance?.PlayStepSound();
         RefreshEndCellLockState();
         OnStepTaken?.Invoke(_runState.SelectedPath.Count);
     }
@@ -299,6 +300,7 @@ public class GameManager : MonoBehaviour
             : 0f;
 
         LevelCompletionResult result = CreateCompletionResult(elapsedSeconds);
+        AudioManager.Instance?.PlayLevelWinSound();
 
         OnLevelResultReady?.Invoke(result);
         OnLevelComplete?.Invoke();

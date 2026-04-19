@@ -70,6 +70,9 @@ public sealed class LevelTimerUI : MonoBehaviour
     {
         if (_timerText == null)
             _timerText = GetComponent<TextMeshProUGUI>();
+
+        if (_timerText != null)
+            _timerText.alignment = TextAlignmentOptions.Center;
     }
 
     private void ForceDisplay(float elapsedSeconds)

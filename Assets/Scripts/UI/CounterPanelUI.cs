@@ -15,11 +15,16 @@ public class CounterPanelUI : MonoBehaviour
 
     // Renk → entry eşlemesi; Initialize sonrası dolu
     private readonly Dictionary<CellColor, ColorCountEntry> _entries = new();
+    private readonly List<ColorCountEntry> _entryOrder = new();
     private Dictionary<CellColor, int> _targets;
     private Func<CellColor, Sprite> _spriteSource;
+    private RectTransform _rectTransform;
+    private RectTransform _containerRect;
     private HorizontalLayoutGroup _layoutGroup;
-    private float _baseSpacing = -1f;
     private float _responsiveScale = 1f;
+
+    public int EntryCount => _entryOrder.Count;
+    public int PreferredRowCount => GetPreferredRowCount(_entryOrder.Count);
 
     // ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -38,6 +43,7 @@ public class CounterPanelUI : MonoBehaviour
         foreach (Transform child in _container)
             Destroy(child.gameObject);
         _entries.Clear();
+        _entryOrder.Clear();
 
         // Renk sayısına göre spacing ve scale hesapla
         float countScale   = CountScaleForEntries(targets.Count);
@@ -53,23 +59,19 @@ public class CounterPanelUI : MonoBehaviour
             entry.ApplyResponsiveScale(countScale);
             entry.SetCount(0, kvp.Value);
             _entries[kvp.Key] = entry;
+            _entryOrder.Add(entry);
         }
     }
 
     public void ApplyResponsiveScale(float scale)
     {
         CacheLayout();
-        float clampedScale = Mathf.Clamp(scale, 1f, 1.9f);
-        if (Mathf.Approximately(_responsiveScale, clampedScale))
-            return;
+        _responsiveScale = CalculateFittingScale(scale);
 
-        _responsiveScale = clampedScale;
-
-        if (_layoutGroup != null)
-            _layoutGroup.spacing = _baseSpacing * Mathf.Lerp(1f, _responsiveScale, 0.8f);
-
-        foreach (var entry in _entries.Values)
+        foreach (var entry in _entryOrder)
             entry.ApplyResponsiveScale(_responsiveScale);
+
+        ApplyManualLayout();
     }
 
     // ── Per-step update ───────────────────────────────────────────────────────
@@ -140,13 +142,98 @@ public class CounterPanelUI : MonoBehaviour
 
     private void CacheLayout()
     {
+        if (_rectTransform == null)
+            _rectTransform = GetComponent<RectTransform>();
+
         if (_container == null)
             return;
 
+        if (_containerRect == null)
+            _containerRect = _container as RectTransform;
+
         _layoutGroup ??= _container.GetComponent<HorizontalLayoutGroup>();
-        if (_layoutGroup != null && _baseSpacing < 0f)
-            _baseSpacing = _layoutGroup.spacing;
+        if (_layoutGroup != null)
+            _layoutGroup.enabled = false;
+
+        if (_containerRect == null)
+            return;
+
+        _containerRect.anchorMin = Vector2.zero;
+        _containerRect.anchorMax = Vector2.one;
+        _containerRect.pivot = new Vector2(0.5f, 0.5f);
+        _containerRect.anchoredPosition = Vector2.zero;
+        _containerRect.sizeDelta = Vector2.zero;
     }
+
+    private float CalculateFittingScale(float desiredScale)
+    {
+        float clampedScale = Mathf.Clamp(desiredScale, 0.9f, 1.95f);
+        if (_rectTransform == null || _entryPrefab == null || _entryOrder.Count == 0)
+            return clampedScale;
+
+        float availableWidth = _rectTransform.rect.width;
+        float availableHeight = _rectTransform.rect.height;
+        if (availableWidth <= 0f || availableHeight <= 0f)
+            return clampedScale;
+
+        RectTransform entryPrefabRect = _entryPrefab.GetComponent<RectTransform>();
+        float entryWidth = entryPrefabRect != null ? entryPrefabRect.sizeDelta.x : 80f;
+        float entryHeight = entryPrefabRect != null ? entryPrefabRect.sizeDelta.y : 72f;
+        int entryCount = _entryOrder.Count;
+        int rows = GetPreferredRowCount(entryCount);
+        int columns = Mathf.CeilToInt(entryCount / (float)rows);
+        float spacingX = CalculateSpacingX(entryCount, clampedScale);
+        float spacingY = Mathf.Clamp(10f * clampedScale, 8f, 18f);
+        float maxByWidth = (availableWidth - (spacingX * Mathf.Max(0, columns - 1))) / Mathf.Max(1f, entryWidth * columns);
+        float maxByHeight = (availableHeight - (spacingY * Mathf.Max(0, rows - 1))) / Mathf.Max(1f, entryHeight * rows);
+        float fittingScale = Mathf.Min(clampedScale, Mathf.Min(maxByWidth, maxByHeight));
+
+        return Mathf.Clamp(fittingScale, 0.78f, clampedScale);
+    }
+
+    private void ApplyManualLayout()
+    {
+        if (_containerRect == null || _entryPrefab == null || _entryOrder.Count == 0)
+            return;
+
+        RectTransform entryPrefabRect = _entryPrefab.GetComponent<RectTransform>();
+        float entryWidth = (entryPrefabRect != null ? entryPrefabRect.sizeDelta.x : 80f) * _responsiveScale;
+        float entryHeight = (entryPrefabRect != null ? entryPrefabRect.sizeDelta.y : 72f) * _responsiveScale;
+        int entryCount = _entryOrder.Count;
+        int rows = GetPreferredRowCount(entryCount);
+        int columns = Mathf.CeilToInt(entryCount / (float)rows);
+        float spacingX = CalculateSpacingX(entryCount, _responsiveScale);
+        float spacingY = Mathf.Clamp(10f * _responsiveScale, 8f, 18f);
+        float totalHeight = (rows * entryHeight) + (Mathf.Max(0, rows - 1) * spacingY);
+        float firstRowY = (totalHeight * 0.5f) - (entryHeight * 0.5f);
+
+        for (int i = 0; i < entryCount; i++)
+        {
+            int row = Mathf.FloorToInt(i / (float)columns);
+            int column = i % columns;
+            int rowEntryCount = Mathf.Min(columns, entryCount - (row * columns));
+            float totalRowWidth = (rowEntryCount * entryWidth) + (Mathf.Max(0, rowEntryCount - 1) * spacingX);
+            float firstColumnX = -(totalRowWidth * 0.5f) + (entryWidth * 0.5f);
+            Vector2 anchoredPosition = new(
+                firstColumnX + (column * (entryWidth + spacingX)),
+                firstRowY - (row * (entryHeight + spacingY)));
+
+            RectTransform entryRect = _entryOrder[i].GetComponent<RectTransform>();
+            entryRect.anchorMin = new Vector2(0.5f, 0.5f);
+            entryRect.anchorMax = new Vector2(0.5f, 0.5f);
+            entryRect.pivot = new Vector2(0.5f, 0.5f);
+            entryRect.anchoredPosition = anchoredPosition;
+        }
+    }
+
+    private static float CalculateSpacingX(int entryCount, float scale)
+    {
+        return entryCount <= 2
+            ? Mathf.Clamp(62f * scale, 46f, 96f)
+            : Mathf.Clamp(34f * scale, 26f, 64f);
+    }
+
+    private static int GetPreferredRowCount(int entryCount) => entryCount >= 4 ? 2 : 1;
 }
 
 // Kullanacak scriptler: GameManager (SetSpriteSource, Initialize, Refresh, TriggerOverflowFeedback,

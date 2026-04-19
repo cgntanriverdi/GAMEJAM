@@ -1,5 +1,5 @@
+using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,8 +12,19 @@ public sealed class StartupMenuUI : MonoBehaviour
         public int LevelIndex;
         public Button Button;
         public Image NodeImage;
+        public Image NodeRimImage;
+        public Image NodeShadeImage;
+        public Image NodeHighlightImage;
+        public Image NodePedestalImage;
+        public Image NodeGlowImage;
         public TextMeshProUGUI NumberText;
-        public TextMeshProUGUI StarsText;
+        public StarRowWidget Stars;
+    }
+
+    private sealed class StarRowWidget
+    {
+        public RectTransform Rect;
+        public Image[] Stars;
     }
 
     private enum OverlayState
@@ -45,39 +56,44 @@ public sealed class StartupMenuUI : MonoBehaviour
     private RectTransform _mapPanelRect;
     private RectTransform _completePanelRect;
     private RectTransform _introContentRect;
-    private RectTransform _mapTitleBadgeRect;
     private RectTransform _mapCardRect;
     private RectTransform _mapRouteRect;
-    private RectTransform _mapFooterRect;
     private RectTransform _completeCardRect;
     private RectTransform _completeContentRect;
     private RectTransform _completeTitleRect;
     private RectTransform _completeStarsRect;
     private RectTransform _completeTimeRect;
     private RectTransform _completeBestRect;
+    private RectTransform _completeRewardIconRect;
     private RectTransform _completeMapButtonRect;
     private RectTransform _completeReplayButtonRect;
     private RectTransform _completeNextButtonRect;
     private TextMeshProUGUI _textTemplate;
     private Sprite _panelSprite;
     private Sprite _roundButtonSprite;
+    private Sprite _mapBackgroundSprite;
 
-    private TextMeshProUGUI _mapTitleText;
-    private TextMeshProUGUI _mapTitleSubText;
-    private TextMeshProUGUI _mapHintText;
     private TextMeshProUGUI _completeTitleText;
-    private TextMeshProUGUI _completeStarsText;
     private TextMeshProUGUI _completeTimeText;
     private TextMeshProUGUI _completeBestText;
+    private TextMeshProUGUI _completeBestTimeText;
+    private TextMeshProUGUI _completeRewardIconText;
     private TextMeshProUGUI _completeMapButtonText;
     private TextMeshProUGUI _completeReplayButtonText;
     private TextMeshProUGUI _completeNextButtonText;
     private Button _nextButton;
+    private Sprite _starSprite;
+    private Sprite _circleSprite;
+    private Sprite _softCircleSprite;
+    private StarRowWidget _completeStarsWidget;
+    private StarRowWidget _completeBestStarsWidget;
     private Vector2 _lastCanvasSize = Vector2.negativeInfinity;
     private Vector2 _lastRouteSize = Vector2.negativeInfinity;
+    private Coroutine _completePanelAnimation;
 
     private GameObject _settingsPanel;
     private Button     _settingsButton;
+    private RectTransform _settingsButtonRect;
 
     private OverlayState _overlayState = OverlayState.Intro;
     private LevelCompletionResult _lastResult;
@@ -191,6 +207,20 @@ public sealed class StartupMenuUI : MonoBehaviour
             Image undoImage = undoButton != null ? undoButton.GetComponent<Image>() : null;
             if (undoImage != null)
                 _roundButtonSprite = undoImage.sprite;
+        }
+
+        if (_mapBackgroundSprite == null)
+        {
+            Sprite[] mapBackgroundSprites = Resources.LoadAll<Sprite>("Generated/MapBackground");
+            if (mapBackgroundSprites != null && mapBackgroundSprites.Length > 0)
+                _mapBackgroundSprite = mapBackgroundSprites[0];
+            if (_mapBackgroundSprite == null)
+            {
+                GameObject backgroundObject = GameObject.Find("Background");
+                SpriteRenderer backgroundRenderer = backgroundObject != null ? backgroundObject.GetComponent<SpriteRenderer>() : null;
+                if (backgroundRenderer != null)
+                    _mapBackgroundSprite = backgroundRenderer.sprite;
+            }
         }
     }
 
@@ -356,50 +386,12 @@ public sealed class StartupMenuUI : MonoBehaviour
         TextMeshProUGUI playLabel = CreateText(playLabelRect, "Play", 34f, Color.white);
         playLabel.fontStyle = FontStyles.Bold;
 
-        RectTransform hintRect = CreateRect(
-            "Hint",
-            _introContentRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -174f),
-            new Vector2(300f, 34f));
-        TextMeshProUGUI hintText = CreateText(hintRect, "Play opens a session map before the puzzle board.", 18f, new Color(1f, 1f, 1f, 0.9f));
-        hintText.enableWordWrapping = true;
     }
 
     private void BuildMapPanel()
     {
         _mapPanel = CreateUiObject("MapPanel", _overlayRoot.transform);
         _mapPanelRect = _mapPanel.GetComponent<RectTransform>();
-
-        _mapTitleBadgeRect = CreateRect(
-            "TitleBadge",
-            _mapPanel.transform,
-            new Vector2(0.5f, 1f),
-            new Vector2(0.5f, 1f),
-            new Vector2(0f, -92f),
-            new Vector2(320f, 84f));
-        Image titleBadgeImage = _mapTitleBadgeRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(titleBadgeImage, new Color(0.97f, 0.74f, 0.86f, 0.95f));
-
-        RectTransform titleRect = CreateRect(
-            "Title",
-            _mapTitleBadgeRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 10f),
-            new Vector2(280f, 30f));
-        _mapTitleText = CreateText(titleRect, "Pick A Route", 30f, new Color(0.52f, 0.18f, 0.32f));
-        _mapTitleText.fontStyle = FontStyles.Bold;
-
-        RectTransform titleSubRect = CreateRect(
-            "TitleSub",
-            _mapTitleBadgeRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -18f),
-            new Vector2(280f, 24f));
-        _mapTitleSubText = CreateText(titleSubRect, "Stars live only for this app session.", 15f, new Color(0.46f, 0.2f, 0.28f));
 
         _mapCardRect = CreateRect(
             "MapCard",
@@ -409,11 +401,13 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0f, -10f),
             new Vector2(680f, 1080f));
         Image mapCardImage = _mapCardRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(mapCardImage, new Color(0.88f, 0.97f, 1f, 0.92f));
-
-        Shadow mapCardShadow = _mapCardRect.gameObject.AddComponent<Shadow>();
-        mapCardShadow.effectColor = new Color(0f, 0f, 0f, 0.24f);
-        mapCardShadow.effectDistance = new Vector2(0f, -10f);
+        if (_mapBackgroundSprite != null)
+        {
+            mapCardImage.sprite = _mapBackgroundSprite;
+            mapCardImage.type = Image.Type.Simple;
+            mapCardImage.preserveAspect = false;
+        }
+        mapCardImage.color = Color.white;
 
         _mapRouteRect = CreateRect(
             "Route",
@@ -422,16 +416,6 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, 24f),
             new Vector2(580f, 860f));
-
-        _mapFooterRect = CreateRect(
-            "Footer",
-            _mapCardRect,
-            new Vector2(0.5f, 0f),
-            new Vector2(0.5f, 0f),
-            new Vector2(0f, 68f),
-            new Vector2(520f, 50f));
-        _mapHintText = CreateText(_mapFooterRect, "Level 1 starts unlocked. Faster clears give more stars.", 18f, new Color(0.24f, 0.33f, 0.45f));
-        _mapHintText.enableWordWrapping = true;
     }
 
     private void BuildMapRoute(RectTransform routeRect, Vector2 routeSize)
@@ -441,9 +425,11 @@ public sealed class StartupMenuUI : MonoBehaviour
             : 1;
 
         float nodeSize = CalculateNodeSize(routeSize, levelCount);
-        float starOffset = Mathf.Clamp(nodeSize * 0.82f, 46f, 78f);
-        float ribbonThickness = Mathf.Clamp(nodeSize * 0.17f, 12f, 22f);
-        Vector2[] positions = BuildNodePositions(levelCount, routeSize, nodeSize, starOffset);
+        float starSize = Mathf.Clamp(nodeSize * 0.46f, 32f, 52f);
+        float starSpacing = Mathf.Clamp(nodeSize * 0.055f, 5f, 9f);
+        float starOffset = Mathf.Clamp((nodeSize * 0.5f) + (starSize * 0.5f) + (nodeSize * 0.2f), 50f, 86f);
+        float ribbonThickness = Mathf.Clamp(nodeSize * 0.18f, 16f, 28f);
+        Vector2[] positions = BuildNodePositions(levelCount, routeSize, nodeSize, starOffset, starSize);
 
         for (int i = 1; i < positions.Length; i++)
             CreatePathRibbon(routeRect, positions[i - 1], positions[i], ribbonThickness);
@@ -457,48 +443,60 @@ public sealed class StartupMenuUI : MonoBehaviour
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0.5f, 0.5f),
                 position,
-                new Vector2(nodeSize, nodeSize));
+                new Vector2(nodeSize * 1.12f, nodeSize * 1.18f));
 
-            Image nodeImage = nodeRect.gameObject.AddComponent<Image>();
-            ApplyNodeSprite(nodeImage, GetNodeColor(i));
-
-            Shadow nodeShadow = nodeRect.gameObject.AddComponent<Shadow>();
-            nodeShadow.effectColor = new Color(0f, 0f, 0f, 0.18f);
-            nodeShadow.effectDistance = new Vector2(0f, -5f);
+            Image hitArea = nodeRect.gameObject.AddComponent<Image>();
+            hitArea.sprite = GetCircleSprite();
+            hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+            hitArea.raycastTarget = true;
 
             Button nodeButton = nodeRect.gameObject.AddComponent<Button>();
-            nodeButton.targetGraphic = nodeImage;
+            nodeButton.targetGraphic = hitArea;
 
             int capturedIndex = i;
             nodeButton.onClick.AddListener(() => HandleLevelSelected(capturedIndex));
+
+            Image glowImage = CreateNodeLayer(nodeRect, "Glow", Vector2.zero, new Vector2(nodeSize * 1.36f, nodeSize * 1.36f), GetSoftCircleSprite(), new Color(1f, 1f, 1f, 0f));
+            CreateNodeLayer(nodeRect, "Shadow", new Vector2(0f, -nodeSize * 0.18f), new Vector2(nodeSize * 0.92f, nodeSize * 0.34f), GetSoftCircleSprite(), new Color(0f, 0f, 0f, 0.22f));
+            Image pedestalImage = CreateNodeLayer(nodeRect, "Pedestal", new Vector2(0f, -nodeSize * 0.11f), new Vector2(nodeSize * 0.98f, nodeSize * 0.34f), GetCircleSprite(), new Color(1f, 0.94f, 0.82f, 1f));
+            Image rimImage = CreateNodeLayer(nodeRect, "Rim", new Vector2(0f, -nodeSize * 0.04f), new Vector2(nodeSize, nodeSize), GetCircleSprite(), Color.white);
+            Image nodeImage = CreateNodeLayer(nodeRect, "Body", new Vector2(0f, 0f), new Vector2(nodeSize * 0.84f, nodeSize * 0.84f), GetCircleSprite(), GetNodeColor(i));
+            Image shadeImage = CreateNodeLayer(nodeRect, "Shade", new Vector2(0f, -nodeSize * 0.09f), new Vector2(nodeSize * 0.74f, nodeSize * 0.5f), GetCircleSprite(), new Color(0f, 0f, 0f, 0.16f));
+            Image highlightImage = CreateNodeLayer(nodeRect, "Highlight", new Vector2(-nodeSize * 0.14f, nodeSize * 0.12f), new Vector2(nodeSize * 0.34f, nodeSize * 0.24f), GetCircleSprite(), new Color(1f, 1f, 1f, 0.62f));
 
             RectTransform numberRect = CreateRect(
                 "Number",
                 nodeRect,
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0.5f, 0.5f),
-                new Vector2(0f, nodeSize * 0.1f),
+                new Vector2(0f, nodeSize * 0.02f),
                 new Vector2(nodeSize * 0.82f, nodeSize * 0.36f));
-            TextMeshProUGUI numberText = CreateText(numberRect, (i + 1).ToString(), Mathf.Clamp(nodeSize * 0.36f, 24f, 40f), Color.white);
+            TextMeshProUGUI numberText = CreateText(numberRect, (i + 1).ToString(), Mathf.Clamp(nodeSize * 0.32f, 25f, 44f), Color.white);
             numberText.fontStyle = FontStyles.Bold;
 
-            RectTransform starsRect = CreateRect(
-                "Stars",
+            Shadow numberShadow = numberRect.gameObject.AddComponent<Shadow>();
+            numberShadow.effectColor = new Color(0f, 0f, 0f, 0.2f);
+            numberShadow.effectDistance = new Vector2(0f, -2f);
+
+            StarRowWidget stars = CreateStarRow(
                 routeRect,
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f),
+                "Stars",
                 position + new Vector2(0f, -starOffset),
-                new Vector2(nodeSize * 1.6f, nodeSize * 0.34f));
-            TextMeshProUGUI starsText = CreateText(starsRect, BuildStarMarkup(0), Mathf.Clamp(nodeSize * 0.2f, 14f, 26f), Color.white);
-            starsText.richText = true;
+                starSize,
+                starSpacing);
 
             _levelButtons.Add(new LevelButtonWidget
             {
                 LevelIndex = i,
                 Button = nodeButton,
                 NodeImage = nodeImage,
+                NodeRimImage = rimImage,
+                NodeShadeImage = shadeImage,
+                NodeHighlightImage = highlightImage,
+                NodePedestalImage = pedestalImage,
+                NodeGlowImage = glowImage,
                 NumberText = numberText,
-                StarsText = starsText
+                Stars = stars
             });
         }
     }
@@ -507,6 +505,9 @@ public sealed class StartupMenuUI : MonoBehaviour
     {
         _completePanel = CreateUiObject("CompletePanel", _overlayRoot.transform);
         _completePanelRect = _completePanel.GetComponent<RectTransform>();
+        Image completeBackdropImage = _completePanel.AddComponent<Image>();
+        completeBackdropImage.color = new Color(0.03f, 0.04f, 0.08f, 0.34f);
+        completeBackdropImage.raycastTarget = true;
 
         _completeCardRect = CreateRect(
             "CompleteCard",
@@ -516,11 +517,11 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0f, 0f),
             new Vector2(420f, 360f));
         Image cardImage = _completeCardRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(cardImage, new Color(0.98f, 0.95f, 0.84f, 0.98f));
+        ApplyPanelSprite(cardImage, new Color(1f, 0.99f, 0.95f, 0.98f));
 
         Shadow cardShadow = _completeCardRect.gameObject.AddComponent<Shadow>();
-        cardShadow.effectColor = new Color(0f, 0f, 0f, 0.28f);
-        cardShadow.effectDistance = new Vector2(0f, -10f);
+        cardShadow.effectColor = new Color(0.2f, 0.18f, 0.12f, 0.2f);
+        cardShadow.effectDistance = new Vector2(0f, -12f);
 
         _completeContentRect = CreateRect(
             "CompleteContent",
@@ -537,41 +538,79 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 1f),
             new Vector2(0f, -48f),
             new Vector2(320f, 48f));
-        _completeTitleText = CreateText(_completeTitleRect, "Level Complete", 34f, new Color(0.58f, 0.22f, 0.31f));
+        _completeTitleText = CreateText(_completeTitleRect, "PERSONAL\nBEST!", 34f, new Color(0.53f, 0.3f, 0f));
         _completeTitleText.fontStyle = FontStyles.Bold;
+        _completeTitleText.lineSpacing = -16f;
+        _completeTitleText.characterSpacing = -2f;
 
         _completeStarsRect = CreateRect(
             "Stars",
-            _completeContentRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 34f),
-            new Vector2(260f, 36f));
-        _completeStarsText = CreateText(_completeStarsRect, BuildStarMarkup(3), 30f, Color.white);
-        _completeStarsText.richText = true;
+            _completeCardRect,
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, 48f),
+            new Vector2(300f, 120f));
+        _completeStarsWidget = CreateCompleteStarCluster(_completeStarsRect);
 
         _completeTimeRect = CreateRect(
-            "Time",
+            "PersonalBestLabel",
             _completeContentRect,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, -18f),
             new Vector2(320f, 32f));
-        _completeTimeText = CreateText(_completeTimeRect, "Time 00:00", 24f, new Color(0.29f, 0.31f, 0.39f));
+        _completeTimeText = CreateText(_completeTimeRect, "00:00", 18f, new Color(0.38f, 0.35f, 0.26f));
+        _completeTimeText.fontStyle = FontStyles.Bold;
+        _completeTimeRect.gameObject.SetActive(false);
 
         _completeBestRect = CreateRect(
-            "Best",
+            "PersonalBest",
             _completeContentRect,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, -58f),
             new Vector2(340f, 48f));
-        _completeBestText = CreateText(_completeBestRect, "Best * * *  00:00", 20f, new Color(0.41f, 0.31f, 0.24f));
-        _completeBestText.richText = true;
-        _completeBestText.enableWordWrapping = true;
+
+        _completeRewardIconRect = CreateRect(
+            "BestIcon",
+            _completeBestRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(-52f, 0f),
+            new Vector2(54f, 54f));
+        Image rewardIconImage = _completeRewardIconRect.gameObject.AddComponent<Image>();
+        rewardIconImage.sprite = GetCircleSprite();
+        rewardIconImage.color = new Color(0.99f, 0.75f, 0.02f, 1f);
+        rewardIconImage.raycastTarget = false;
+
+        Shadow rewardIconShadow = _completeRewardIconRect.gameObject.AddComponent<Shadow>();
+        rewardIconShadow.effectColor = new Color(0.2f, 0.16f, 0.05f, 0.2f);
+        rewardIconShadow.effectDistance = new Vector2(0f, -4f);
+
+        RectTransform rewardIconLabelRect = CreateRect(
+            "Label",
+            _completeRewardIconRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(48f, 30f));
+        _completeRewardIconText = CreateText(rewardIconLabelRect, "PB", 18f, Color.white);
+        _completeRewardIconText.fontStyle = FontStyles.Bold;
+
+        RectTransform bestValueRect = CreateRect(
+            "BestValue",
+            _completeBestRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(36f, 0f),
+            new Vector2(190f, 64f));
+        _completeBestTimeText = CreateText(bestValueRect, "00:00", 42f, new Color(0.54f, 0.3f, 0.06f));
+        _completeBestTimeText.fontStyle = FontStyles.Bold;
+        _completeBestTimeText.alignment = TextAlignmentOptions.Left;
+        _completeBestRect.gameObject.SetActive(false);
 
         CreateActionButton(_completeContentRect, "MapButton", "Map", new Vector2(-118f, -118f), HandleMapPressed, out _completeMapButtonRect, out _completeMapButtonText);
-        CreateActionButton(_completeContentRect, "ReplayButton", "Replay", new Vector2(0f, -118f), HandleReplayPressed, out _completeReplayButtonRect, out _completeReplayButtonText);
+        CreateActionButton(_completeContentRect, "ReplayButton", "Retry", new Vector2(0f, -118f), HandleReplayPressed, out _completeReplayButtonRect, out _completeReplayButtonText);
         _nextButton = CreateActionButton(_completeContentRect, "NextButton", "Next", new Vector2(118f, -118f), HandleNextPressed, out _completeNextButtonRect, out _completeNextButtonText);
     }
 
@@ -592,7 +631,38 @@ public sealed class StartupMenuUI : MonoBehaviour
             anchoredPosition,
             new Vector2(104f, 62f));
         Image buttonImage = buttonRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(buttonImage, new Color(0.9f, 0.24f, 0.56f, 1f));
+        GetCompleteButtonStyle(label, out Color fillColor, out Color outlineColor, out Color textColor);
+        ApplyPanelSprite(buttonImage, fillColor);
+
+        Shadow buttonShadow = buttonRect.gameObject.AddComponent<Shadow>();
+        buttonShadow.effectColor = new Color(0.18f, 0.14f, 0.08f, 0.22f);
+        buttonShadow.effectDistance = new Vector2(0f, -7f);
+
+        Outline buttonOutline = buttonRect.gameObject.AddComponent<Outline>();
+        buttonOutline.effectColor = outlineColor;
+        buttonOutline.effectDistance = new Vector2(3f, -3f);
+
+        RectTransform glossRect = CreateRect(
+            "Gloss",
+            buttonRect,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image glossImage = glossRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(glossImage, new Color(1f, 1f, 1f, 0.18f));
+        glossImage.raycastTarget = false;
+
+        RectTransform shadeRect = CreateRect(
+            "BottomShade",
+            buttonRect,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f),
+            new Vector2(0f, 12f));
+        Image shadeImage = shadeRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(shadeImage, new Color(0f, 0f, 0f, 0.11f));
+        shadeImage.raycastTarget = false;
 
         Button button = buttonRect.gameObject.AddComponent<Button>();
         button.targetGraphic = buttonImage;
@@ -605,10 +675,34 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
             new Vector2(92f, 32f));
-        labelText = CreateText(labelRect, label, 22f, Color.white);
+        labelText = CreateText(labelRect, label, 22f, textColor);
         labelText.fontStyle = FontStyles.Bold;
 
         return button;
+    }
+
+    private static void GetCompleteButtonStyle(string label, out Color fillColor, out Color outlineColor, out Color textColor)
+    {
+        switch (label)
+        {
+            case "Map":
+                fillColor = new Color(0.89f, 0.87f, 0.75f, 1f);
+                outlineColor = new Color(0.48f, 0.47f, 0.39f, 0.96f);
+                textColor = new Color(0.2f, 0.18f, 0.13f, 1f);
+                return;
+
+            case "Retry":
+                fillColor = new Color(0.99f, 0.75f, 0.02f, 1f);
+                outlineColor = new Color(0.33f, 0.24f, 0f, 0.96f);
+                textColor = Color.white;
+                return;
+
+            default:
+                fillColor = new Color(0.36f, 0.9f, 0.34f, 1f);
+                outlineColor = new Color(0f, 0.37f, 0.09f, 0.96f);
+                textColor = Color.white;
+                return;
+        }
     }
 
     private void ShowIntro()
@@ -626,6 +720,9 @@ public sealed class StartupMenuUI : MonoBehaviour
     private void SetOverlayState(OverlayState state)
     {
         _overlayState = state;
+        if (state != OverlayState.Complete)
+            StopCompletePanelIntro();
+
         RefreshResponsiveLayout(forceRouteRebuild: state == OverlayState.Map);
 
         bool overlayVisible = state != OverlayState.Hidden;
@@ -639,7 +736,11 @@ public sealed class StartupMenuUI : MonoBehaviour
             _mapPanel.SetActive(state == OverlayState.Map);
 
         if (_completePanel != null)
+        {
             _completePanel.SetActive(state == OverlayState.Complete);
+            if (state == OverlayState.Complete)
+                PlayCompletePanelIntro();
+        }
 
         if (_settingsPanel != null)
             _settingsPanel.SetActive(false);
@@ -759,24 +860,18 @@ public sealed class StartupMenuUI : MonoBehaviour
     private void UpdateCompletePanel(LevelCompletionResult result)
     {
         if (_completeTitleText != null)
-            _completeTitleText.text = $"Level {result.LevelIndex + 1} Clear";
-
-        if (_completeStarsText != null)
-            _completeStarsText.text = BuildStarMarkup(result.StarsEarned);
+            _completeTitleText.text = "PERSONAL\nBEST!";
 
         if (_completeTimeText != null)
-            _completeTimeText.text = $"Time {FormatTime(result.ElapsedSeconds)}";
+            _completeTimeText.text = FormatTime(result.ElapsedSeconds);
 
-        if (_completeBestText != null)
-        {
-            string bestLabel = result.IsNewBest ? "New Best" : "Best";
-            _completeBestText.text = $"{bestLabel} {BuildStarMarkup(result.BestStars)}  {FormatTime(result.BestTimeSeconds)}";
-        }
+        if (_completeTimeRect != null)
+            _completeTimeRect.gameObject.SetActive(true);
+
+        UpdateStarRow(_completeStarsWidget, result.StarsEarned, false);
 
         if (_nextButton != null)
-            _nextButton.gameObject.SetActive(
-                LevelManager.Instance != null
-                && LevelManager.Instance.TryGetNextUnlockedLevelIndex(result.LevelIndex, out _));
+            _nextButton.gameObject.SetActive(true);
     }
 
     private void RefreshMapPanel()
@@ -784,26 +879,20 @@ public sealed class StartupMenuUI : MonoBehaviour
         if (_levelButtons.Count == 0 || LevelManager.Instance == null)
             return;
 
+        int highlightedLevelIndex = GetHighlightedLevelIndex();
         foreach (LevelButtonWidget widget in _levelButtons)
         {
             int levelIndex = widget.LevelIndex;
             bool unlocked = LevelManager.Instance.IsLevelUnlocked(levelIndex);
             int bestStars = LevelManager.Instance.GetBestStars(levelIndex);
+            bool highlighted = levelIndex == highlightedLevelIndex;
 
             widget.Button.interactable = unlocked;
             widget.NumberText.text = unlocked ? (levelIndex + 1).ToString() : "?";
-            widget.StarsText.text = unlocked
-                ? BuildStarMarkup(bestStars)
-                : BuildStarMarkup(0, "#5E6786", "#5E6786");
-
-            Color nodeColor = unlocked
-                ? GetNodeColor(levelIndex)
-                : new Color(0.4f, 0.45f, 0.58f, 0.9f);
-            ApplyNodeSprite(widget.NodeImage, nodeColor);
+            UpdateStarRow(widget.Stars, bestStars, !unlocked);
+            ApplyLevelNodeVisual(widget, levelIndex, unlocked, highlighted);
         }
 
-        if (_mapHintText != null)
-            _mapHintText.text = "Level 1 starts unlocked. Stars reset when the app closes.";
     }
 
     private void SetGameplayVisible(bool visible)
@@ -821,9 +910,58 @@ public sealed class StartupMenuUI : MonoBehaviour
             _swipeInput.SetInputEnabled(false);
     }
 
+    private void PlayCompletePanelIntro()
+    {
+        if (_completeCardRect == null || !isActiveAndEnabled)
+            return;
+
+        StopCompletePanelIntro();
+
+        _completePanelAnimation = StartCoroutine(AnimateCompletePanelIntro());
+    }
+
+    private void StopCompletePanelIntro()
+    {
+        if (_completePanelAnimation == null)
+            return;
+
+        StopCoroutine(_completePanelAnimation);
+        _completePanelAnimation = null;
+
+        if (_completeCardRect != null)
+            _completeCardRect.localScale = Vector3.one;
+    }
+
+    private IEnumerator AnimateCompletePanelIntro()
+    {
+        Vector2 targetPosition = _completeCardRect.anchoredPosition;
+        Vector2 startPosition = targetPosition + new Vector2(0f, -180f);
+        Vector3 startScale = new Vector3(0.88f, 0.88f, 1f);
+        const float duration = 0.34f;
+        float elapsed = 0f;
+
+        _completeCardRect.anchoredPosition = startPosition;
+        _completeCardRect.localScale = startScale;
+
+        while (elapsed < duration)
+        {
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = EaseOutBack(t);
+            _completeCardRect.anchoredPosition = Vector2.LerpUnclamped(startPosition, targetPosition, eased);
+            _completeCardRect.localScale = Vector3.LerpUnclamped(startScale, Vector3.one, eased);
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        _completeCardRect.anchoredPosition = targetPosition;
+        _completeCardRect.localScale = Vector3.one;
+        _completePanelAnimation = null;
+    }
+
     private void TeardownOverlay()
     {
         DetachGameManagerEvents();
+        StopCompletePanelIntro();
 
         if (_overlayRoot != null)
             Destroy(_overlayRoot);
@@ -836,16 +974,15 @@ public sealed class StartupMenuUI : MonoBehaviour
         _mapPanelRect = null;
         _completePanelRect = null;
         _introContentRect = null;
-        _mapTitleBadgeRect = null;
         _mapCardRect = null;
         _mapRouteRect = null;
-        _mapFooterRect = null;
         _completeCardRect = null;
         _completeContentRect = null;
         _completeTitleRect = null;
         _completeStarsRect = null;
         _completeTimeRect = null;
         _completeBestRect = null;
+        _completeRewardIconRect = null;
         _completeMapButtonRect = null;
         _completeReplayButtonRect = null;
         _completeNextButtonRect = null;
@@ -855,17 +992,20 @@ public sealed class StartupMenuUI : MonoBehaviour
         _playerToken = null;
         _swipeInput = null;
         _gameManager = null;
-        _mapTitleText = null;
-        _mapTitleSubText = null;
-        _mapHintText = null;
         _completeTitleText = null;
-        _completeStarsText = null;
         _completeTimeText = null;
         _completeBestText = null;
+        _completeBestTimeText = null;
+        _completeRewardIconText = null;
         _completeMapButtonText = null;
         _completeReplayButtonText = null;
         _completeNextButtonText = null;
         _nextButton = null;
+        _completeStarsWidget = null;
+        _completeBestStarsWidget = null;
+        _settingsPanel = null;
+        _settingsButton = null;
+        _settingsButtonRect = null;
         _lastCanvasSize = Vector2.negativeInfinity;
         _lastRouteSize = Vector2.negativeInfinity;
         _levelButtons.Clear();
@@ -899,36 +1039,150 @@ public sealed class StartupMenuUI : MonoBehaviour
         image.color = color;
     }
 
+    private Image CreateNodeLayer(RectTransform parent, string name, Vector2 anchoredPosition, Vector2 sizeDelta, Sprite sprite, Color color)
+    {
+        RectTransform layerRect = CreateRect(
+            name,
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            anchoredPosition,
+            sizeDelta);
+
+        Image image = layerRect.gameObject.AddComponent<Image>();
+        image.sprite = sprite;
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private void ApplyLevelNodeVisual(LevelButtonWidget widget, int levelIndex, bool unlocked, bool highlighted)
+    {
+        if (widget == null)
+            return;
+
+        Color baseColor = GetNodeColor(levelIndex);
+        Color faceColor = unlocked
+            ? baseColor
+            : new Color(0.98f, 0.99f, 1f, 1f);
+        Color rimColor = unlocked
+            ? Color.Lerp(baseColor, Color.white, 0.82f)
+            : new Color(0.96f, 0.97f, 0.99f, 1f);
+        Color pedestalColor = unlocked
+            ? Color.Lerp(baseColor, new Color(1f, 0.95f, 0.84f, 1f), 0.78f)
+            : new Color(0.98f, 0.95f, 0.88f, 1f);
+        Color shadeColor = unlocked
+            ? Color.Lerp(baseColor, new Color(0.28f, 0.12f, 0.22f, 1f), 0.28f)
+            : new Color(0.88f, 0.9f, 0.94f, 0.95f);
+        Color highlightColor = unlocked
+            ? new Color(1f, 1f, 1f, 0.56f)
+            : new Color(1f, 1f, 1f, 0.86f);
+        Color glowColor = highlighted
+            ? new Color(baseColor.r, baseColor.g, baseColor.b, unlocked ? 0.24f : 0.14f)
+            : new Color(1f, 1f, 1f, 0f);
+        Color numberColor = unlocked
+            ? Color.white
+            : new Color(0.68f, 0.73f, 0.79f, 1f);
+
+        if (widget.NodeRimImage != null)
+            widget.NodeRimImage.color = rimColor;
+
+        if (widget.NodeImage != null)
+            widget.NodeImage.color = faceColor;
+
+        if (widget.NodePedestalImage != null)
+            widget.NodePedestalImage.color = pedestalColor;
+
+        if (widget.NodeShadeImage != null)
+            widget.NodeShadeImage.color = shadeColor;
+
+        if (widget.NodeHighlightImage != null)
+            widget.NodeHighlightImage.color = highlightColor;
+
+        if (widget.NodeGlowImage != null)
+            widget.NodeGlowImage.color = glowColor;
+
+        if (widget.NumberText != null)
+            widget.NumberText.color = numberColor;
+    }
+
+    private int GetHighlightedLevelIndex()
+    {
+        if (LevelManager.Instance == null)
+            return -1;
+
+        if (LevelManager.Instance.ActiveLevelIndex >= 0 && LevelManager.Instance.IsLevelUnlocked(LevelManager.Instance.ActiveLevelIndex))
+            return LevelManager.Instance.ActiveLevelIndex;
+
+        int highestUnlocked = -1;
+        for (int i = 0; i < LevelManager.Instance.SessionLevelCount; i++)
+        {
+            if (LevelManager.Instance.IsLevelUnlocked(i))
+                highestUnlocked = i;
+        }
+
+        return highestUnlocked;
+    }
+
     private void CreatePathRibbon(RectTransform parent, Vector2 from, Vector2 to, float thickness)
     {
+        float ribbonLength = Vector2.Distance(from, to);
         RectTransform ribbonRect = CreateRect(
             "RouteRibbon",
             parent,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             (from + to) * 0.5f,
-            new Vector2(Vector2.Distance(from, to), thickness));
+            new Vector2(ribbonLength, thickness * 1.45f));
 
         float angle = Mathf.Atan2(to.y - from.y, to.x - from.x) * Mathf.Rad2Deg;
         ribbonRect.localRotation = Quaternion.Euler(0f, 0f, angle);
 
-        Image ribbonImage = ribbonRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(ribbonImage, new Color(1f, 0.88f, 0.95f, 0.9f));
-        ribbonImage.raycastTarget = false;
+        Image ribbonShadowImage = CreateNodeLayer(ribbonRect, "Shadow", new Vector2(0f, -thickness * 0.16f), new Vector2(ribbonLength, thickness * 1.18f), GetSoftCircleSprite(), new Color(0f, 0f, 0f, 0.12f));
+        ribbonShadowImage.rectTransform.localScale = new Vector3(1f, 0.56f, 1f);
+
+        CreateNodeLayer(ribbonRect, "Base", Vector2.zero, new Vector2(ribbonLength, thickness * 1.04f), null, Color.white);
+        CreateNodeLayer(ribbonRect, "Inner", Vector2.zero, new Vector2(ribbonLength, thickness * 0.72f), null, new Color(1f, 0.76f, 0.87f, 1f));
+
+        float stripeSpacing = thickness * 1.08f;
+        float stripeWidth = thickness * 0.38f;
+        float stripeHeight = thickness * 1.34f;
+        int stripeCount = Mathf.CeilToInt(ribbonLength / stripeSpacing) + 3;
+        float startX = -(ribbonLength * 0.5f) - stripeSpacing;
+        for (int i = 0; i < stripeCount; i++)
+        {
+            Image stripeImage = CreateNodeLayer(
+                ribbonRect,
+                $"Stripe_{i + 1}",
+                new Vector2(startX + (stripeSpacing * i), 0f),
+                new Vector2(stripeWidth, stripeHeight),
+                null,
+                new Color(0.98f, 0.45f, 0.72f, 0.96f));
+            stripeImage.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 28f);
+        }
+
+        float capSize = thickness * 1.06f;
+        CreateNodeLayer(ribbonRect, "CapStartBase", new Vector2(-(ribbonLength * 0.5f), 0f), new Vector2(capSize, capSize), GetCircleSprite(), Color.white);
+        CreateNodeLayer(ribbonRect, "CapEndBase", new Vector2(ribbonLength * 0.5f, 0f), new Vector2(capSize, capSize), GetCircleSprite(), Color.white);
+        CreateNodeLayer(ribbonRect, "CapStartInner", new Vector2(-(ribbonLength * 0.5f), 0f), new Vector2(thickness * 0.72f, thickness * 0.72f), GetCircleSprite(), new Color(1f, 0.76f, 0.87f, 1f));
+        CreateNodeLayer(ribbonRect, "CapEndInner", new Vector2(ribbonLength * 0.5f, 0f), new Vector2(thickness * 0.72f, thickness * 0.72f), GetCircleSprite(), new Color(1f, 0.76f, 0.87f, 1f));
     }
 
-    private static Vector2[] BuildNodePositions(int levelCount, Vector2 routeSize, float nodeSize, float starOffset)
+    private static Vector2[] BuildNodePositions(int levelCount, Vector2 routeSize, float nodeSize, float starOffset, float starSize)
     {
         var result = new Vector2[levelCount];
-        float[] xPattern = { -0.32f, 0.31f, -0.13f, 0.28f, -0.25f, 0.15f };
-        float horizontalLimit = Mathf.Max(0f, (routeSize.x * 0.5f) - (nodeSize * 0.58f));
-        float top = routeSize.y * 0.5f - (nodeSize * 0.55f);
-        float bottom = -routeSize.y * 0.5f + (nodeSize * 0.82f) + (starOffset * 0.12f);
+        float horizontalLimit = Mathf.Max(0f, (routeSize.x * 0.5f) - (nodeSize * 0.72f));
+        float top = routeSize.y * 0.5f - (nodeSize * 0.62f);
+        float bottom = -routeSize.y * 0.5f + starOffset + (starSize * 0.5f) + (nodeSize * 0.2f);
         float spacing = levelCount > 1 ? (top - bottom) / (levelCount - 1) : 0f;
 
         for (int i = 0; i < levelCount; i++)
         {
-            float x = Mathf.Clamp(routeSize.x * xPattern[i % xPattern.Length], -horizontalLimit, horizontalLimit);
+            float progress = levelCount > 1 ? i / (float)(levelCount - 1) : 0.5f;
+            float wave = Mathf.Sin((progress * Mathf.PI * 2.8f) - (Mathf.PI * 0.55f));
+            float x = Mathf.Clamp(wave * routeSize.x * 0.37f, -horizontalLimit, horizontalLimit);
             float y = top - (spacing * i);
             result[i] = new Vector2(x, y);
         }
@@ -938,9 +1192,9 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private static float CalculateNodeSize(Vector2 routeSize, int levelCount)
     {
-        float widthDriven = routeSize.x * 0.23f;
-        float heightDriven = routeSize.y / Mathf.Max(levelCount, 1) * 0.92f;
-        return Mathf.Clamp(Mathf.Min(widthDriven, heightDriven), 60f, 132f);
+        float widthDriven = routeSize.x * 0.29f;
+        float heightDriven = routeSize.y / Mathf.Max(levelCount, 1) * 1.08f;
+        return Mathf.Clamp(Mathf.Min(widthDriven, heightDriven), 72f, 150f);
     }
 
     private void RefreshResponsiveLayoutIfNeeded()
@@ -982,6 +1236,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         ApplySafeAreaRect(_introPanelRect, safeAreaRect);
         ApplySafeAreaRect(_mapPanelRect, safeAreaRect);
         ApplySafeAreaRect(_completePanelRect, safeAreaRect);
+        LayoutSettingsButton(safeAreaRect);
 
         bool portrait = safeAreaRect.height >= safeAreaRect.width;
         LayoutIntroPanel(safeAreaRect.size);
@@ -1003,46 +1258,23 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private void LayoutMapPanel(Vector2 safeAreaSize, bool portrait, bool forceRouteRebuild)
     {
-        if (_mapTitleBadgeRect == null || _mapCardRect == null || _mapRouteRect == null || _mapFooterRect == null)
+        if (_mapCardRect == null || _mapRouteRect == null)
             return;
 
         float layoutScale = ComputeResponsiveScale(safeAreaSize, new Vector2(360f, 700f), 1f, 1.8f, 0.58f);
-        float badgeWidth = Mathf.Clamp(safeAreaSize.x * (portrait ? 0.66f : 0.44f), 250f * layoutScale, 500f);
-        float badgeHeight = Mathf.Clamp(72f * layoutScale, 72f, 118f);
-        float badgeTopPadding = 10f * layoutScale;
-        _mapTitleBadgeRect.anchoredPosition = new Vector2(0f, -(badgeTopPadding + badgeHeight * 0.5f));
-        _mapTitleBadgeRect.sizeDelta = new Vector2(badgeWidth, badgeHeight);
+        float cardWidth = safeAreaSize.x;
+        float cardHeight = safeAreaSize.y;
 
-        if (_mapTitleText != null)
-            _mapTitleText.fontSize = Mathf.Clamp(28f * layoutScale, 28f, 46f);
+        _mapCardRect.anchoredPosition = Vector2.zero;
+        _mapCardRect.sizeDelta = safeAreaSize;
 
-        if (_mapTitleSubText != null)
-            _mapTitleSubText.fontSize = Mathf.Clamp(14f * layoutScale, 14f, 22f);
-
-        float horizontalMargin = portrait
-            ? Mathf.Clamp(safeAreaSize.x * 0.035f, 10f, 24f * layoutScale)
-            : Mathf.Clamp(safeAreaSize.x * 0.055f, 24f, 64f * layoutScale);
-        float topMargin = badgeTopPadding + badgeHeight + (12f * layoutScale);
-        float bottomMargin = 12f * layoutScale;
-        float cardWidth = Mathf.Min(safeAreaSize.x - (horizontalMargin * 2f), 860f);
-        float cardHeight = Mathf.Min(safeAreaSize.y - topMargin - bottomMargin, 1320f);
-
-        _mapCardRect.anchoredPosition = new Vector2(0f, (bottomMargin - topMargin) * 0.5f);
-        _mapCardRect.sizeDelta = new Vector2(cardWidth, cardHeight);
-
-        float sidePadding = Mathf.Clamp(cardWidth * (portrait ? 0.1f : 0.08f), 16f * layoutScale, 44f * layoutScale);
-        float routeTopPadding = Mathf.Clamp(24f * layoutScale, 20f, 48f);
-        float routeBottomPadding = Mathf.Clamp(38f * layoutScale, 30f, 74f);
-        _mapRouteRect.anchoredPosition = new Vector2(0f, (routeBottomPadding - routeTopPadding) * 0.5f + (6f * layoutScale));
+        float sidePadding = Mathf.Clamp(cardWidth * (portrait ? 0.08f : 0.07f), 16f * layoutScale, 44f * layoutScale);
+        float routeTopPadding = Mathf.Clamp(36f * layoutScale, 24f, 60f);
+        float routeBottomPadding = Mathf.Clamp(42f * layoutScale, 28f, 72f);
+        _mapRouteRect.anchoredPosition = new Vector2(0f, (routeBottomPadding - routeTopPadding) * 0.5f);
         _mapRouteRect.sizeDelta = new Vector2(
             Mathf.Max(240f, cardWidth - (sidePadding * 2f)),
             Mathf.Max(320f, cardHeight - routeTopPadding - routeBottomPadding));
-
-        _mapFooterRect.anchoredPosition = new Vector2(0f, 24f * layoutScale);
-        _mapFooterRect.sizeDelta = new Vector2(cardWidth - (sidePadding * 1.1f), 44f * layoutScale);
-
-        if (_mapHintText != null)
-            _mapHintText.fontSize = Mathf.Clamp(15f * layoutScale, 15f, 24f);
 
         Canvas.ForceUpdateCanvases();
 
@@ -1062,17 +1294,18 @@ public sealed class StartupMenuUI : MonoBehaviour
         if (_completeCardRect == null || _completeContentRect == null)
             return;
 
-        float cardScale = ComputeResponsiveScale(safeAreaSize, new Vector2(360f, 760f), 1f, 1.75f, 0.66f);
-        float width = Mathf.Clamp(safeAreaSize.x * 0.95f, 340f, 760f);
-        float height = Mathf.Clamp(safeAreaSize.y * 0.58f, 380f, 720f);
-        float innerWidth = Mathf.Max(300f, width - (28f * cardScale));
-        float innerHeight = Mathf.Max(320f, height - (24f * cardScale));
-        float typographyScale = ComputeResponsiveScale(new Vector2(innerWidth, innerHeight), new Vector2(340f, 320f), 1f, 1.7f, 0.64f);
-        float buttonGap = Mathf.Clamp(12f * typographyScale, 12f, 24f);
-        float buttonWidth = Mathf.Clamp((innerWidth - (buttonGap * 2f)) / 3f, 96f, 190f);
-        float buttonHeight = Mathf.Clamp(62f * typographyScale, 62f, 102f);
-        float buttonY = -(innerHeight * 0.31f);
+        float cardScale = ComputeResponsiveScale(safeAreaSize, new Vector2(390f, 780f), 1.42f, 2.15f, 0.64f);
+        float width = Mathf.Clamp(safeAreaSize.x * 1.12f, 430f, 660f);
+        float height = Mathf.Clamp(430f * cardScale, 455f, 720f);
+        float innerWidth = Mathf.Max(346f, width - (72f * cardScale));
+        float innerHeight = Mathf.Max(330f, height - (72f * cardScale));
+        float typographyScale = ComputeResponsiveScale(new Vector2(innerWidth, innerHeight), new Vector2(340f, 330f), 1.24f, 1.9f, 0.58f);
+        float buttonGap = Mathf.Clamp(12f * typographyScale, 12f, 22f);
+        float buttonWidth = Mathf.Clamp((innerWidth - (buttonGap * 2f)) / 3f, 116f, 178f);
+        float buttonHeight = Mathf.Clamp(72f * typographyScale, 76f, 112f);
+        float buttonY = -(innerHeight * 0.34f);
 
+        _completeCardRect.anchoredPosition = Vector2.zero;
         _completeCardRect.sizeDelta = new Vector2(width, height);
         _completeContentRect.anchoredPosition = Vector2.zero;
         _completeContentRect.sizeDelta = new Vector2(innerWidth, innerHeight);
@@ -1080,39 +1313,52 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         if (_completeTitleRect != null)
         {
-            _completeTitleRect.anchoredPosition = new Vector2(0f, -42f * typographyScale);
-            _completeTitleRect.sizeDelta = new Vector2(innerWidth * 0.86f, 60f * typographyScale);
+            _completeTitleRect.anchoredPosition = new Vector2(0f, -82f * typographyScale);
+            _completeTitleRect.sizeDelta = new Vector2(innerWidth, 112f * typographyScale);
         }
 
         if (_completeTitleText != null)
-            _completeTitleText.fontSize = Mathf.Clamp(36f * typographyScale, 36f, 62f);
+            _completeTitleText.fontSize = Mathf.Clamp(43f * typographyScale, 52f, 84f);
 
         if (_completeStarsRect != null)
         {
-            _completeStarsRect.anchoredPosition = new Vector2(0f, innerHeight * 0.15f);
-            _completeStarsRect.sizeDelta = new Vector2(innerWidth * 0.56f, 42f * typographyScale);
+            _completeStarsRect.anchoredPosition = new Vector2(0f, Mathf.Clamp(70f * typographyScale, 72f, 112f));
+            _completeStarsRect.sizeDelta = new Vector2(width, Mathf.Clamp(150f * typographyScale, 152f, 240f));
         }
 
-        if (_completeStarsText != null)
-            _completeStarsText.fontSize = Mathf.Clamp(34f * typographyScale, 34f, 56f);
+        ApplyCompleteStarClusterLayout(_completeStarsWidget, Mathf.Clamp(142f * typographyScale, 150f, 220f), Mathf.Clamp(10f * typographyScale, 10f, 18f));
 
         if (_completeTimeRect != null)
         {
-            _completeTimeRect.anchoredPosition = new Vector2(0f, innerHeight * 0.03f);
-            _completeTimeRect.sizeDelta = new Vector2(innerWidth * 0.72f, 40f * typographyScale);
+            _completeTimeRect.anchoredPosition = new Vector2(0f, (innerHeight * 0.5f) - (150f * typographyScale));
+            _completeTimeRect.sizeDelta = new Vector2(innerWidth * 0.86f, 38f * typographyScale);
         }
 
         if (_completeTimeText != null)
-            _completeTimeText.fontSize = Mathf.Clamp(28f * typographyScale, 28f, 46f);
+            _completeTimeText.fontSize = Mathf.Clamp(24f * typographyScale, 26f, 42f);
 
         if (_completeBestRect != null)
         {
-            _completeBestRect.anchoredPosition = new Vector2(0f, -(innerHeight * 0.11f));
-            _completeBestRect.sizeDelta = new Vector2(innerWidth * 0.82f, 54f * typographyScale);
+            _completeBestRect.anchoredPosition = new Vector2(0f, -(innerHeight * 0.145f));
+            _completeBestRect.sizeDelta = new Vector2(innerWidth * 0.86f, 74f * typographyScale);
         }
 
-        if (_completeBestText != null)
-            _completeBestText.fontSize = Mathf.Clamp(21f * typographyScale, 21f, 34f);
+        float iconSize = Mathf.Clamp(52f * typographyScale, 52f, 82f);
+        if (_completeRewardIconRect != null)
+        {
+            _completeRewardIconRect.anchoredPosition = new Vector2(-(iconSize * 0.82f), 0f);
+            _completeRewardIconRect.sizeDelta = new Vector2(iconSize, iconSize);
+        }
+
+        if (_completeRewardIconText != null)
+            _completeRewardIconText.fontSize = Mathf.Clamp(18f * typographyScale, 18f, 30f);
+
+        if (_completeBestTimeText != null)
+        {
+            _completeBestTimeText.fontSize = Mathf.Clamp(43f * typographyScale, 43f, 72f);
+            _completeBestTimeText.rectTransform.anchoredPosition = new Vector2(iconSize * 0.34f, 0f);
+            _completeBestTimeText.rectTransform.sizeDelta = new Vector2(innerWidth * 0.5f, 76f * typographyScale);
+        }
 
         ApplyCompleteButtonLayout(_completeMapButtonRect, _completeMapButtonText, new Vector2(-(buttonWidth + buttonGap), buttonY), buttonWidth, buttonHeight, typographyScale);
         ApplyCompleteButtonLayout(_completeReplayButtonRect, _completeReplayButtonText, new Vector2(0f, buttonY), buttonWidth, buttonHeight, typographyScale);
@@ -1137,31 +1383,294 @@ public sealed class StartupMenuUI : MonoBehaviour
     {
         Color[] palette =
         {
-            new Color(0.96f, 0.34f, 0.63f),
-            new Color(0.3f, 0.62f, 0.98f),
-            new Color(0.98f, 0.62f, 0.24f),
-            new Color(0.63f, 0.43f, 0.96f),
-            new Color(0.32f, 0.78f, 0.66f)
+            new Color(0.96f, 0.34f, 0.68f),
+            new Color(0.29f, 0.58f, 0.98f),
+            new Color(0.99f, 0.65f, 0.24f),
+            new Color(0.66f, 0.42f, 0.98f),
+            new Color(0.31f, 0.82f, 0.64f)
         };
 
         return palette[levelIndex % palette.Length];
     }
 
-    private static string BuildStarMarkup(int stars, string filledColor = "#F3C552", string emptyColor = "#7A839C")
+    private StarRowWidget CreateStarRow(Transform parent, string name, Vector2 anchoredPosition, float starSize, float spacing)
     {
-        var builder = new StringBuilder();
+        RectTransform rowRect = CreateRect(
+            name,
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            anchoredPosition,
+            Vector2.zero);
+
+        var widget = new StarRowWidget
+        {
+            Rect = rowRect,
+            Stars = new Image[3]
+        };
+
         for (int i = 0; i < 3; i++)
         {
-            string color = i < stars ? filledColor : emptyColor;
-            builder.Append("<color=");
-            builder.Append(color);
-            builder.Append(">*</color>");
+            RectTransform starRect = CreateRect(
+                $"Star_{i + 1}",
+                rowRect,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                Vector2.zero);
 
-            if (i < 2)
-                builder.Append(" ");
+            Image image = starRect.gameObject.AddComponent<Image>();
+            image.sprite = GetStarSprite();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            Shadow shadow = starRect.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0.42f, 0.26f, 0.02f, 0.26f);
+            shadow.effectDistance = new Vector2(0f, -2f);
+
+            widget.Stars[i] = image;
         }
 
-        return builder.ToString();
+        ApplyStarRowLayout(widget, starSize, spacing);
+        UpdateStarRow(widget, 0, false);
+        return widget;
+    }
+
+    private StarRowWidget CreateCompleteStarCluster(Transform parent)
+    {
+        RectTransform rowRect = CreateRect(
+            "StarCluster",
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            Vector2.zero);
+
+        var widget = new StarRowWidget
+        {
+            Rect = rowRect,
+            Stars = new Image[3]
+        };
+
+        for (int i = 0; i < widget.Stars.Length; i++)
+        {
+            RectTransform starRect = CreateRect(
+                $"BigStar_{i + 1}",
+                rowRect,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                Vector2.zero);
+
+            Image image = starRect.gameObject.AddComponent<Image>();
+            image.sprite = GetStarSprite();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            Shadow shadow = starRect.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0.2f, 0.16f, 0.05f, 0.26f);
+            shadow.effectDistance = new Vector2(0f, -7f);
+
+            Outline outline = starRect.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.99f, 0.95f, 0.92f);
+            outline.effectDistance = new Vector2(3f, -3f);
+
+            widget.Stars[i] = image;
+        }
+
+        ApplyCompleteStarClusterLayout(widget, 112f, 10f);
+        UpdateStarRow(widget, 0, false);
+        return widget;
+    }
+
+    private static void ApplyStarRowLayout(StarRowWidget widget, float starSize, float spacing)
+    {
+        if (widget?.Rect == null || widget.Stars == null)
+            return;
+
+        float width = (starSize * widget.Stars.Length) + (spacing * Mathf.Max(0, widget.Stars.Length - 1));
+        widget.Rect.sizeDelta = new Vector2(width, starSize);
+
+        float startX = -width * 0.5f + starSize * 0.5f;
+        for (int i = 0; i < widget.Stars.Length; i++)
+        {
+            if (widget.Stars[i] == null)
+                continue;
+
+            RectTransform starRect = widget.Stars[i].rectTransform;
+            starRect.anchoredPosition = new Vector2(startX + (i * (starSize + spacing)), 0f);
+            starRect.sizeDelta = new Vector2(starSize, starSize);
+        }
+    }
+
+    private static void ApplyCompleteStarClusterLayout(StarRowWidget widget, float starSize, float spacing)
+    {
+        if (widget?.Rect == null || widget.Stars == null || widget.Stars.Length < 3)
+            return;
+
+        float sideSize = starSize * 0.72f;
+        float width = (sideSize * 2f) + starSize - (spacing * 1.4f);
+        float height = starSize * 1.08f;
+        widget.Rect.sizeDelta = new Vector2(width, height);
+
+        Vector2[] positions =
+        {
+            new Vector2(-(starSize * 0.46f), -(starSize * 0.02f)),
+            new Vector2(0f, starSize * 0.08f),
+            new Vector2(starSize * 0.46f, -(starSize * 0.02f))
+        };
+        float[] sizes = { sideSize, starSize, sideSize };
+        float[] rotations = { -10f, 0f, 10f };
+
+        for (int i = 0; i < widget.Stars.Length; i++)
+        {
+            if (widget.Stars[i] == null)
+                continue;
+
+            RectTransform starRect = widget.Stars[i].rectTransform;
+            starRect.anchoredPosition = positions[i];
+            starRect.sizeDelta = new Vector2(sizes[i], sizes[i]);
+            starRect.localRotation = Quaternion.Euler(0f, 0f, rotations[i]);
+        }
+    }
+
+    private static void UpdateStarRow(StarRowWidget widget, int filledStars, bool locked)
+    {
+        if (widget?.Stars == null)
+            return;
+
+        Color filledColor = new Color(1f, 0.75f, 0.05f, 1f);
+        Color emptyColor = locked
+            ? new Color(0.45f, 0.52f, 0.58f, 0.58f)
+            : new Color(0.72f, 0.78f, 0.84f, 0.76f);
+
+        for (int i = 0; i < widget.Stars.Length; i++)
+        {
+            if (widget.Stars[i] == null)
+                continue;
+
+            widget.Stars[i].color = i < filledStars ? filledColor : emptyColor;
+        }
+    }
+
+    private Sprite GetStarSprite()
+    {
+        if (_starSprite != null)
+            return _starSprite;
+
+        const int size = 128;
+        const int samples = 4;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        float outerRadius = size * 0.46f;
+        float innerRadius = size * 0.22f;
+        var points = new Vector2[10];
+        for (int i = 0; i < points.Length; i++)
+        {
+            float angle = (90f + (36f * i)) * Mathf.Deg2Rad;
+            float radius = i % 2 == 0 ? outerRadius : innerRadius;
+            points[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        }
+
+        Color[] pixels = new Color[size * size];
+        float sampleStep = 1f / samples;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+                for (int sy = 0; sy < samples; sy++)
+                {
+                    for (int sx = 0; sx < samples; sx++)
+                    {
+                        Vector2 point = new Vector2(x + ((sx + 0.5f) * sampleStep), y + ((sy + 0.5f) * sampleStep));
+                        if (IsPointInPolygon(point, points))
+                            hits++;
+                    }
+                }
+
+                float alpha = hits / (float)(samples * samples);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply(false, true);
+        _starSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+        _starSprite.name = "RuntimeJuicyStar";
+        return _starSprite;
+    }
+
+    private Sprite GetCircleSprite()
+    {
+        if (_circleSprite != null)
+            return _circleSprite;
+
+        _circleSprite = CreateRadialSprite(size: 128, feather: 0.08f, softInterior: false, "RuntimeCircle");
+        return _circleSprite;
+    }
+
+    private Sprite GetSoftCircleSprite()
+    {
+        if (_softCircleSprite != null)
+            return _softCircleSprite;
+
+        _softCircleSprite = CreateRadialSprite(size: 128, feather: 0.36f, softInterior: true, "RuntimeSoftCircle");
+        return _softCircleSprite;
+    }
+
+    private static Sprite CreateRadialSprite(int size, float feather, bool softInterior, string spriteName)
+    {
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        float radius = size * 0.5f;
+        float featherWidth = Mathf.Max(1f, size * feather);
+        Color[] pixels = new Color[size * size];
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), center);
+                float alpha = Mathf.Clamp01((radius - distance) / featherWidth);
+                if (softInterior)
+                    alpha *= Mathf.SmoothStep(0f, 1f, alpha);
+
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply(false, true);
+        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+        sprite.name = spriteName;
+        return sprite;
+    }
+
+    private static bool IsPointInPolygon(Vector2 point, IReadOnlyList<Vector2> polygon)
+    {
+        bool inside = false;
+        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+        {
+            Vector2 a = polygon[i];
+            Vector2 b = polygon[j];
+            bool intersects = ((a.y > point.y) != (b.y > point.y))
+                && point.x < ((b.x - a.x) * (point.y - a.y) / (b.y - a.y)) + a.x;
+            if (intersects)
+                inside = !inside;
+        }
+
+        return inside;
     }
 
     private static string FormatTime(float elapsedSeconds)
@@ -1238,6 +1747,14 @@ public sealed class StartupMenuUI : MonoBehaviour
         return Mathf.Clamp(scale, minScale, maxScale);
     }
 
+    private static float EaseOutBack(float t)
+    {
+        const float c1 = 1.70158f;
+        const float c3 = c1 + 1f;
+        float p = t - 1f;
+        return 1f + (c3 * p * p * p) + (c1 * p * p);
+    }
+
     private static void ApplyCompleteButtonLayout(
         RectTransform buttonRect,
         TextMeshProUGUI labelText,
@@ -1253,6 +1770,9 @@ public sealed class StartupMenuUI : MonoBehaviour
         buttonRect.sizeDelta = new Vector2(width, height);
         labelText.fontSize = Mathf.Clamp(23f * scale, 23f, 36f);
         labelText.rectTransform.sizeDelta = new Vector2(width * 0.9f, height * 0.58f);
+
+        if (buttonRect.Find("BottomShade") is RectTransform shadeRect)
+            shadeRect.sizeDelta = new Vector2(0f, height * 0.2f);
     }
 
     private static void ApplySafeAreaRect(RectTransform rect, Rect safeAreaRect)
@@ -1275,6 +1795,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         RectTransform btnRect = CreateRect("SettingsButton", _overlayRoot.transform,
             new Vector2(1f, 1f), new Vector2(1f, 1f),
             new Vector2(-44f, -44f), new Vector2(56f, 56f));
+        _settingsButtonRect = btnRect;
 
         var btnImg = btnRect.gameObject.AddComponent<Image>();
         var gearSprite = Resources.Load<Sprite>("SettingsIcon");
@@ -1299,6 +1820,26 @@ public sealed class StartupMenuUI : MonoBehaviour
         _settingsButton.onClick.AddListener(ToggleSettingsPanel);
     }
 
+    private void LayoutSettingsButton(Rect safeAreaRect)
+    {
+        if (_settingsButtonRect == null && _settingsButton != null)
+            _settingsButtonRect = _settingsButton.GetComponent<RectTransform>();
+
+        if (_settingsButtonRect == null || safeAreaRect.width <= 0f || safeAreaRect.height <= 0f)
+            return;
+
+        float size = Mathf.Clamp(Mathf.Min(safeAreaRect.width, safeAreaRect.height) * 0.08f, 44f, 62f);
+        float horizontalMargin = Mathf.Clamp(size * 0.55f, 24f, 34f);
+        float topMargin = Mathf.Clamp(size * 0.78f, 34f, 48f);
+
+        _settingsButtonRect.anchorMin = new Vector2(0.5f, 0.5f);
+        _settingsButtonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        _settingsButtonRect.pivot = new Vector2(1f, 1f);
+        _settingsButtonRect.anchoredPosition = new Vector2(safeAreaRect.xMax - horizontalMargin, safeAreaRect.yMax - topMargin);
+        _settingsButtonRect.sizeDelta = new Vector2(size, size);
+        _settingsButtonRect.localScale = Vector3.one;
+    }
+
     private void BuildSettingsPanel()
     {
         var panelRoot = CreateUiObject("SettingsPanel", _overlayRoot.transform);
@@ -1307,7 +1848,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         StretchToParent(rootRect);
 
         var dim = panelRoot.AddComponent<Image>();
-        dim.color = new Color(0f, 0f, 0f, 0.5f);
+        dim.color = new Color(0.03f, 0.04f, 0.08f, 0.38f);
         dim.raycastTarget = true;
         var dimBtn = panelRoot.AddComponent<Button>();
         dimBtn.targetGraphic = dim;
@@ -1316,69 +1857,116 @@ public sealed class StartupMenuUI : MonoBehaviour
         dimBtn.colors = dimCb;
         dimBtn.onClick.AddListener(ToggleSettingsPanel);
 
-        // Card
         RectTransform cardRect = CreateRect("Card", panelRoot.transform,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(300f, 230f));
+            Vector2.zero, new Vector2(660f, 640f));
         var cardImg = cardRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(cardImg, new Color(0.98f, 0.93f, 0.78f, 0.97f));
+        ApplyPanelSprite(cardImg, new Color(1f, 0.99f, 0.95f, 0.98f));
+
+        Shadow cardShadow = cardRect.gameObject.AddComponent<Shadow>();
+        cardShadow.effectColor = new Color(0.2f, 0.18f, 0.12f, 0.2f);
+        cardShadow.effectDistance = new Vector2(0f, -12f);
+
         var cardBtn = cardRect.gameObject.AddComponent<Button>();
         cardBtn.targetGraphic = cardImg;
         ColorBlock cardCb = cardBtn.colors;
         cardCb.normalColor = cardCb.highlightedColor = cardCb.pressedColor = Color.white;
         cardBtn.colors = cardCb;
 
-        // Title
         RectTransform titleRect = CreateRect("Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -36f), new Vector2(220f, 40f));
-        var title = CreateText(titleRect, "Ayarlar", 28, new Color(0.42f, 0.28f, 0.16f));
+            new Vector2(0f, -92f), new Vector2(520f, 86f));
+        var title = CreateText(titleRect, "AYARLAR", 66, new Color(0.53f, 0.3f, 0f));
         title.fontStyle = FontStyles.Bold;
+        title.characterSpacing = 8f;
         title.alignment = TextAlignmentOptions.Center;
 
-        // Music row
         RectTransform musicLblRect = CreateRect("MusicLabel", cardRect,
-            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(70f, 42f), new Vector2(90f, 30f));
-        var musicLbl = CreateText(musicLblRect, "Müzik", 20, new Color(0.42f, 0.28f, 0.16f));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(0f, 120f), new Vector2(520f, 52f));
+        var musicLbl = CreateText(musicLblRect, "Müzik", 40, new Color(0.53f, 0.3f, 0f));
+        musicLbl.fontStyle = FontStyles.Bold;
         musicLbl.alignment = TextAlignmentOptions.Left;
 
         float initMusic = AudioManager.Instance != null ? AudioManager.Instance.MusicVolume : 0.5f;
-        CreateVolumeSlider(cardRect, new Vector2(80f, 42f), new Vector2(140f, 26f),
-            initMusic, v => AudioManager.Instance?.SetMusicVolume(v));
+        CreateVolumeSlider(cardRect, new Vector2(0f, 58f), new Vector2(520f, 58f),
+            initMusic, v => AudioManager.Instance?.SetMusicVolume(v), new Color(0.99f, 0.75f, 0.02f, 1f));
 
-        // SFX row
         RectTransform sfxLblRect = CreateRect("SfxLabel", cardRect,
-            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(70f, -10f), new Vector2(90f, 30f));
-        var sfxLbl = CreateText(sfxLblRect, "Ses Efekti", 20, new Color(0.42f, 0.28f, 0.16f));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -60f), new Vector2(520f, 52f));
+        var sfxLbl = CreateText(sfxLblRect, "Ses Efekti", 40, new Color(0.53f, 0.3f, 0f));
+        sfxLbl.fontStyle = FontStyles.Bold;
         sfxLbl.alignment = TextAlignmentOptions.Left;
 
         float initSfx = AudioManager.Instance != null ? AudioManager.Instance.SfxVolume : 0.8f;
-        CreateVolumeSlider(cardRect, new Vector2(80f, -10f), new Vector2(140f, 26f),
-            initSfx, v => AudioManager.Instance?.SetSfxVolume(v));
+        CreateVolumeSlider(cardRect, new Vector2(0f, -122f), new Vector2(520f, 58f),
+            initSfx, v => AudioManager.Instance?.SetSfxVolume(v), new Color(0.36f, 0.9f, 0.34f, 1f));
 
-        // Close button
-        RectTransform closeRect = CreateRect("CloseButton", cardRect,
-            new Vector2(1f, 1f), new Vector2(1f, 1f),
-            new Vector2(-14f, -14f), new Vector2(30f, 30f));
-        var closeImg = closeRect.gameObject.AddComponent<Image>();
-        ApplyPanelSprite(closeImg, new Color(0.85f, 0.25f, 0.25f, 1f));
-        var closeBtn = closeRect.gameObject.AddComponent<Button>();
-        closeBtn.targetGraphic = closeImg;
-        ColorBlock closeCb = closeBtn.colors;
-        closeCb.normalColor  = Color.white;
-        closeCb.pressedColor = new Color(0.7f, 0.15f, 0.15f);
-        closeBtn.colors = closeCb;
-        closeBtn.onClick.AddListener(ToggleSettingsPanel);
-
-        RectTransform xRect = CreateRect("X", closeRect,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            Vector2.zero, new Vector2(28f, 28f));
-        var xTxt = CreateText(xRect, "✕", 18, Color.white);
-        xTxt.alignment = TextAlignmentOptions.Center;
+        CreateSettingsCloseButton(cardRect);
 
         _settingsPanel.SetActive(false);
+    }
+
+    private Button CreateSettingsCloseButton(Transform parent)
+    {
+        RectTransform buttonRect = CreateRect(
+            "CloseButton",
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -246f),
+            new Vector2(340f, 108f));
+
+        GetCompleteButtonStyle("Next", out Color fillColor, out Color outlineColor, out Color textColor);
+
+        Image buttonImage = buttonRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(buttonImage, fillColor);
+
+        Shadow buttonShadow = buttonRect.gameObject.AddComponent<Shadow>();
+        buttonShadow.effectColor = new Color(0.18f, 0.14f, 0.08f, 0.22f);
+        buttonShadow.effectDistance = new Vector2(0f, -7f);
+
+        Outline buttonOutline = buttonRect.gameObject.AddComponent<Outline>();
+        buttonOutline.effectColor = outlineColor;
+        buttonOutline.effectDistance = new Vector2(3f, -3f);
+
+        RectTransform glossRect = CreateRect(
+            "Gloss",
+            buttonRect,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image glossImage = glossRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(glossImage, new Color(1f, 1f, 1f, 0.18f));
+        glossImage.raycastTarget = false;
+
+        RectTransform shadeRect = CreateRect(
+            "BottomShade",
+            buttonRect,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            Vector2.zero,
+            new Vector2(0f, 14f));
+        Image shadeImage = shadeRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(shadeImage, new Color(0f, 0f, 0f, 0.11f));
+        shadeImage.raycastTarget = false;
+
+        Button button = buttonRect.gameObject.AddComponent<Button>();
+        button.targetGraphic = buttonImage;
+        button.onClick.AddListener(ToggleSettingsPanel);
+
+        RectTransform labelRect = CreateRect(
+            "Label",
+            buttonRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(300f, 66f));
+        TextMeshProUGUI labelText = CreateText(labelRect, "Kapat", 44f, textColor);
+        labelText.fontStyle = FontStyles.Bold;
+        return button;
     }
 
     private void ToggleSettingsPanel()
@@ -1388,7 +1976,7 @@ public sealed class StartupMenuUI : MonoBehaviour
     }
 
     private Slider CreateVolumeSlider(Transform parent, Vector2 anchoredPos, Vector2 size,
-        float initialValue, UnityEngine.Events.UnityAction<float> onChanged)
+        float initialValue, UnityEngine.Events.UnityAction<float> onChanged, Color fillColor)
     {
         var go   = CreateUiObject("Slider", parent);
         var rect = go.GetComponent<RectTransform>();
@@ -1406,16 +1994,16 @@ public sealed class StartupMenuUI : MonoBehaviour
         bgRect.offsetMin = bgRect.offsetMax = Vector2.zero;
         bgRect.localScale = Vector3.one;
         var bgImg = bg.AddComponent<Image>();
-        bgImg.color = new Color(0.2f, 0.2f, 0.2f, 0.6f);
-        bgImg.raycastTarget = false;
+        ApplyPanelSprite(bgImg, new Color(0.89f, 0.87f, 0.75f, 1f));
+        bgImg.raycastTarget = true;
 
         // Fill area
         var fillArea = CreateUiObject("Fill Area", go.transform);
         var fillAreaRect = fillArea.GetComponent<RectTransform>();
         fillAreaRect.anchorMin = new Vector2(0f, 0.25f);
         fillAreaRect.anchorMax = new Vector2(1f, 0.75f);
-        fillAreaRect.offsetMin = new Vector2(5f, 0f);
-        fillAreaRect.offsetMax = new Vector2(-15f, 0f);
+        fillAreaRect.offsetMin = new Vector2(8f, 0f);
+        fillAreaRect.offsetMax = new Vector2(-18f, 0f);
         fillAreaRect.localScale = Vector3.one;
 
         var fill = CreateUiObject("Fill", fillArea.transform);
@@ -1425,7 +2013,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         fillRect.offsetMin = fillRect.offsetMax = Vector2.zero;
         fillRect.localScale = Vector3.one;
         var fillImg = fill.AddComponent<Image>();
-        fillImg.color = new Color(0.3f, 0.6f, 1f, 1f);
+        ApplyPanelSprite(fillImg, fillColor);
         fillImg.raycastTarget = false;
 
         // Handle area
@@ -1441,10 +2029,15 @@ public sealed class StartupMenuUI : MonoBehaviour
         var handleRect = handle.GetComponent<RectTransform>();
         handleRect.anchorMin = new Vector2(0f, 0f);
         handleRect.anchorMax = new Vector2(0f, 1f);
-        handleRect.sizeDelta = new Vector2(22f, 0f);
+        handleRect.sizeDelta = new Vector2(34f, 0f);
         handleRect.localScale = Vector3.one;
         var handleImg = handle.AddComponent<Image>();
+        handleImg.sprite = GetCircleSprite();
         handleImg.color = Color.white;
+
+        Shadow handleShadow = handle.AddComponent<Shadow>();
+        handleShadow.effectColor = new Color(0.2f, 0.16f, 0.05f, 0.22f);
+        handleShadow.effectDistance = new Vector2(0f, -4f);
 
         var slider = go.AddComponent<Slider>();
         slider.fillRect      = fillRect;
