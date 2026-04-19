@@ -616,8 +616,9 @@ public sealed class StartupMenuUI : MonoBehaviour
                 RectTransform rabbitImgRect = CreateRect(
                     "RabbitImage", contentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
                 Image rabbitImg = rabbitImgRect.gameObject.AddComponent<Image>();
+                rabbitImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("rabbit_final");
                 if (sprites != null && sprites.Length > 0)
                 {
@@ -629,8 +630,9 @@ public sealed class StartupMenuUI : MonoBehaviour
                 RectTransform catImgRect = CreateRect(
                     "CatImage", contentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
                 Image catImg = catImgRect.gameObject.AddComponent<Image>();
+                catImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("kedi_final");
                 if (sprites != null && sprites.Length > 0)
                 {
@@ -642,8 +644,9 @@ public sealed class StartupMenuUI : MonoBehaviour
                 RectTransform dogImgRect = CreateRect(
                     "DogImage", contentRect,
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                    new Vector2(130f, yPositions[i]), new Vector2(95f, 95f));
                 Image dogImg = dogImgRect.gameObject.AddComponent<Image>();
+                dogImg.preserveAspect = true;
                 var sprites = Resources.LoadAll<Sprite>("dog_greenscreen-removebg-preview");
                 if (sprites != null && sprites.Length > 0)
                 {
