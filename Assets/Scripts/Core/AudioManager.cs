@@ -13,6 +13,9 @@ using UnityEngine;
 [DefaultExecutionOrder(0)]
 public class AudioManager : MonoBehaviour
 {
+    private const string StepSoundResourceName = "StepSound";
+    private const string LevelWinSoundResourceName = "LevelWinSound";
+
     // ── Singleton ─────────────────────────────────────────────────────────────
 
     public static AudioManager Instance { get; private set; }
@@ -23,7 +26,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip _sfxCellSelect;    // geçerli adım
     [SerializeField] private AudioClip _sfxInvalidSwipe;  // geçersiz yön
     [SerializeField] private AudioClip _sfxUndo;          // undo
-[SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
+    [SerializeField] private AudioClip _sfxLevelComplete; // level kazanıldı
     [SerializeField] private AudioClip _sfxHintReveal;    // hint açıldı
 
     [Header("Music Clips")]
@@ -44,6 +47,10 @@ public class AudioManager : MonoBehaviour
     private AudioSource _musicB;
     private AudioSource _activeMusic;   // o an çalan kaynak
     private bool        _audioEnabled;
+    private bool        _audioStateInitialized;
+
+    private Coroutine _crossfadeCoroutine;
+    private Coroutine _gameplayLoopCoroutine;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -57,53 +64,89 @@ public class AudioManager : MonoBehaviour
         _musicA    = CreateSource(loop: true);
         _musicB    = CreateSource(loop: true);
         _activeMusic = _musicA;  // başlangıçta ikisi de sessiz
+
+        InitializeAudioState();
+        LoadRequiredSfxClips();
     }
 
     private void Start()
     {
-        // PlayerPrefs durumunu oku
-        _audioEnabled = ProgressionService.Instance != null
-            ? ProgressionService.Instance.AudioEnabled
-            : true;
-
-        // GameManager event'leri
-        GameManager.Instance.OnStepTaken    += OnStepTaken;
-        GameManager.Instance.OnLevelComplete += OnLevelComplete;
-        GameManager.Instance.OnMoveFailed    += OnMoveFailed;
-        GameManager.Instance.OnUndoPerformed += OnUndoPerformed;
+        // GameManager event'leri. Step ve win sesleri GameManager'dan direkt çağrılır;
+        // invalid/undo ise event üzerinden kalır.
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnMoveFailed    += OnMoveFailed;
+            GameManager.Instance.OnUndoPerformed += OnUndoPerformed;
+        }
     }
 
     private void OnDestroy()
     {
         if (GameManager.Instance == null) return;
-        GameManager.Instance.OnStepTaken    -= OnStepTaken;
-        GameManager.Instance.OnLevelComplete -= OnLevelComplete;
         GameManager.Instance.OnMoveFailed    -= OnMoveFailed;
         GameManager.Instance.OnUndoPerformed -= OnUndoPerformed;
     }
 
     // ── GameManager event handlers ────────────────────────────────────────────
 
-    private void OnStepTaken(int _)    => PlaySFX(_sfxCellSelect);
-    private void OnLevelComplete()     => PlaySFX(_sfxLevelComplete);
-    private void OnMoveFailed(MoveOutcome _) => PlaySFX(_sfxInvalidSwipe);
-    private void OnUndoPerformed()     => PlaySFX(_sfxUndo);
+    private void OnMoveFailed(MoveOutcome _)  => PlaySFX(_sfxInvalidSwipe);
+    private void OnUndoPerformed()            => PlaySFX(_sfxUndo);
 
     // ── Public SFX — HintManager çağırır ────────────────────────────────────
 
     public void PlayHintReveal()  => PlaySFX(_sfxHintReveal);
 
+    public void PlayStepSound()
+    {
+        EnsureAudioReady();
+        if (_sfxCellSelect == null)
+            LoadRequiredSfxClips();
+
+        PlaySFX(_sfxCellSelect);
+    }
+
+    public void PlayLevelWinSound()
+    {
+        EnsureAudioReady();
+        if (_sfxLevelComplete == null)
+            LoadRequiredSfxClips();
+
+        StopGameplayLoop();
+        PlaySFX(_sfxLevelComplete);
+    }
+
     // ── Music API ─────────────────────────────────────────────────────────────
 
-    /// <summary>Ana menü müziğine geç (1 saniyelik crossfade).</summary>
+    /// <summary>Ana menü müziğine geç (inspector clip'i).</summary>
     public void PlayMainMenuMusic()  => CrossfadeTo(_musicMainMenu);
 
-    /// <summary>Gameplay müziğine geç (1 saniyelik crossfade).</summary>
+    /// <summary>Gameplay müziğine geç (inspector clip'i).</summary>
     public void PlayGameplayMusic()  => CrossfadeTo(_musicGameplay);
+
+    /// <summary>Dışarıdan verilen clip'i çal (Resources.Load ile yüklenen clip'ler için).</summary>
+    public void PlayMusicClip(AudioClip clip) => CrossfadeTo(clip);
+
+    /// <summary>
+    /// İki clip arasında sonsuz döngü: clip1 biter bitmez clip2'ye geç, o bitince clip1'e dön.
+    /// </summary>
+    public void StartGameplayLoop(AudioClip clip1, AudioClip clip2)
+    {
+        if (_gameplayLoopCoroutine != null) StopCoroutine(_gameplayLoopCoroutine);
+        _gameplayLoopCoroutine = StartCoroutine(GameplayLoopRoutine(clip1, clip2));
+    }
+
+    /// <summary>Gameplay döngüsünü durdurur ve aktif müziği fade-out yapar.</summary>
+    public void StopGameplayLoop()
+    {
+        if (_gameplayLoopCoroutine != null) { StopCoroutine(_gameplayLoopCoroutine); _gameplayLoopCoroutine = null; }
+        if (_crossfadeCoroutine    != null) { StopCoroutine(_crossfadeCoroutine);    _crossfadeCoroutine    = null; }
+        StartCoroutine(FadeOut(_activeMusic, _crossfadeDuration));
+    }
 
     public void StopMusic()
     {
-        StopAllCoroutines();
+        if (_gameplayLoopCoroutine != null) { StopCoroutine(_gameplayLoopCoroutine); _gameplayLoopCoroutine = null; }
+        if (_crossfadeCoroutine    != null) { StopCoroutine(_crossfadeCoroutine);    _crossfadeCoroutine    = null; }
         StartCoroutine(FadeOut(_activeMusic, _crossfadeDuration));
     }
 
@@ -120,32 +163,93 @@ public class AudioManager : MonoBehaviour
         if (!enabled)
         {
             _sfxSource.Stop();
-            StopAllCoroutines();
+            if (_gameplayLoopCoroutine != null) { StopCoroutine(_gameplayLoopCoroutine); _gameplayLoopCoroutine = null; }
+            if (_crossfadeCoroutine    != null) { StopCoroutine(_crossfadeCoroutine);    _crossfadeCoroutine    = null; }
             _musicA.volume = 0f;
             _musicB.volume = 0f;
         }
         else
         {
-            // Aktif kaynak sessiz kaldıysa sesi aç
             _activeMusic.volume = _musicVolume;
         }
     }
 
-    public bool IsAudioEnabled => _audioEnabled;
+    public bool  IsAudioEnabled => _audioEnabled;
+    public float MusicVolume    => _musicVolume;
+    public float SfxVolume      => _sfxVolume;
+
+    public void SetMusicVolume(float volume)
+    {
+        _musicVolume = Mathf.Clamp01(volume);
+        if (_audioEnabled && _activeMusic != null)
+            _activeMusic.volume = _musicVolume;
+    }
+
+    public void SetSfxVolume(float volume)
+    {
+        _sfxVolume = Mathf.Clamp01(volume);
+    }
+
+    [ContextMenu("Enable Audio")]
+    private void DebugEnableAudio() => SetAudioEnabled(true);
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
     private void PlaySFX(AudioClip clip)
     {
+        EnsureAudioReady();
         if (!_audioEnabled || clip == null) return;
+        _sfxSource.volume = 1f;
         _sfxSource.PlayOneShot(clip, _sfxVolume);
     }
 
+    private void InitializeAudioState()
+    {
+        if (!PlayerPrefs.HasKey("AudioEnabled"))
+        {
+            PlayerPrefs.SetInt("AudioEnabled", 1);
+            PlayerPrefs.Save();
+        }
+
+        _audioEnabled = ProgressionService.Instance != null
+            ? ProgressionService.Instance.AudioEnabled
+            : PlayerPrefs.GetInt("AudioEnabled", 1) == 1;
+        _audioStateInitialized = true;
+    }
+
+    private void EnsureAudioReady()
+    {
+        if (!_audioStateInitialized)
+            InitializeAudioState();
+    }
+
+    private void LoadRequiredSfxClips()
+    {
+        AudioClip stepSound = Resources.Load<AudioClip>(StepSoundResourceName);
+        if (stepSound != null)
+            _sfxCellSelect = stepSound;
+        else
+            Debug.LogWarning($"[AudioManager] Resources/{StepSoundResourceName} bulunamadı; step SFX inspector değerine düşüyor.");
+
+        AudioClip levelWinSound = Resources.Load<AudioClip>(LevelWinSoundResourceName);
+        if (levelWinSound != null)
+            _sfxLevelComplete = levelWinSound;
+        else
+            Debug.LogWarning($"[AudioManager] Resources/{LevelWinSoundResourceName} bulunamadı; win SFX inspector değerine düşüyor.");
+    }
+
+    // Dışarıdan çağrıldığında gameplay loop'u iptal edip crossfade başlatır.
     private void CrossfadeTo(AudioClip clip)
     {
-        if (clip == null) return;
+        if (_gameplayLoopCoroutine != null) { StopCoroutine(_gameplayLoopCoroutine); _gameplayLoopCoroutine = null; }
+        CrossfadeToInternal(clip);
+    }
 
-        // Aynı klip zaten çalıyorsa yeniden başlatma
+    // Gameplay loop içinden çağrılır — loop coroutine'i kesmez.
+    private void CrossfadeToInternal(AudioClip clip)
+    {
+        EnsureAudioReady();
+        if (clip == null) return;
         if (_activeMusic.clip == clip && _activeMusic.isPlaying) return;
 
         AudioSource next = (_activeMusic == _musicA) ? _musicB : _musicA;
@@ -153,14 +257,29 @@ public class AudioManager : MonoBehaviour
         next.volume = 0f;
         next.Play();
 
-        StopAllCoroutines();
-        StartCoroutine(Crossfade(_activeMusic, next));
+        if (_crossfadeCoroutine != null) StopCoroutine(_crossfadeCoroutine);
+        _crossfadeCoroutine = StartCoroutine(Crossfade(_activeMusic, next));
         _activeMusic = next;
+    }
+
+    private IEnumerator GameplayLoopRoutine(AudioClip clip1, AudioClip clip2)
+    {
+        AudioClip[] clips = { clip1, clip2 };
+        int index = 0;
+        while (true)
+        {
+            AudioClip current = clips[index % 2];
+            CrossfadeToInternal(current);
+            float wait = current.length - _crossfadeDuration;
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+            else           yield return null;
+            index++;
+        }
     }
 
     private IEnumerator Crossfade(AudioSource from, AudioSource to)
     {
-        float startVolume = from.volume;
+        float startVolume  = from.volume;
         float targetVolume = _audioEnabled ? _musicVolume : 0f;
         float elapsed = 0f;
 
@@ -185,8 +304,8 @@ public class AudioManager : MonoBehaviour
 
         while (elapsed < duration)
         {
-            elapsed     += Time.deltaTime;
-            source.volume = Mathf.Lerp(startVolume, 0f, elapsed / duration);
+            elapsed       += Time.deltaTime;
+            source.volume  = Mathf.Lerp(startVolume, 0f, elapsed / duration);
             yield return null;
         }
 
@@ -196,14 +315,14 @@ public class AudioManager : MonoBehaviour
 
     private AudioSource CreateSource(bool loop)
     {
-        var src  = gameObject.AddComponent<AudioSource>();
+        var src      = gameObject.AddComponent<AudioSource>();
         src.loop         = loop;
         src.playOnAwake  = false;
-        src.volume       = 0f;
+        src.volume       = loop ? 0f : 1f;
         return src;
     }
 }
 
 // Kullanacak scriptler: HintManager (PlayHintReveal),
-//                       MainMenu / GameBootstrap (PlayMainMenuMusic, PlayGameplayMusic),
+//                       StartupMenuUI (PlayMusicClip, StartGameplayLoop, StopGameplayLoop),
 //                       Ayarlar UI (SetAudioEnabled)
