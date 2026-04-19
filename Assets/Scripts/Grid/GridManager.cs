@@ -25,6 +25,7 @@ public class GridManager : MonoBehaviour
 
     [Header("End sprite")]
     [SerializeField] private Sprite boneSprite;
+    [SerializeField] private Sprite prisonSprite;
 
     private int _width;
     private int _height;
@@ -104,18 +105,18 @@ public class GridManager : MonoBehaviour
             _views[kvp.Key.X, kvp.Key.Y].SetColor(kvp.Value);
         }
 
-        // Start hücresini gri, end hücresini mor göster
+        // Start hücresini purple göster; end hücresinin arka planını temizle (sadece kemik kalır)
         _views[startCoord.X, startCoord.Y].SetAsStart();
-        _views[endCoord.X,   endCoord.Y  ].SetAsEnd();
+        _views[endCoord.X,   endCoord.Y  ].ClearBackground();
 
         _endCoord = endCoord;
 
-        // End hücresine bone overlay — hücrenin %70'i kadar, başlangıçta kilitli (soluk)
+        // End hücresine katman sırası: kemik (ortada) → kafes (en üstte, başlangıçta görünür)
         if (boneSprite != null)
-        {
             _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
-            _views[endCoord.X, endCoord.Y].SetOverlayColor(new Color(1f, 1f, 1f, 0.3f));
-        }
+
+        if (prisonSprite != null)
+            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
@@ -215,7 +216,8 @@ public class GridManager : MonoBehaviour
     public void SetEndCellLockVisual(bool isUnlocked)
     {
         var view = _views[_endCoord.X, _endCoord.Y];
-        view.SetOverlayColor(isUnlocked ? Color.white : new Color(1f, 1f, 1f, 0.3f));
+        view.SetOverlayColor(Color.white);           // kemik her zaman tam opasite
+        view.SetPrisonOverlayVisible(!isUnlocked);   // kafes kilitliyse görünür, açıksa gizli
     }
 
     /// <summary>GridCoord'u world-space pozisyona çevirir (PlayerToken için).</summary>
