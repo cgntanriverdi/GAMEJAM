@@ -116,7 +116,7 @@ public class GridManager : MonoBehaviour
             _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
 
         if (prisonSprite != null)
-            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize);
+            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize * 0.96f);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
