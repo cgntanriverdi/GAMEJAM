@@ -76,6 +76,9 @@ public sealed class StartupMenuUI : MonoBehaviour
     private Vector2 _lastCanvasSize = Vector2.negativeInfinity;
     private Vector2 _lastRouteSize = Vector2.negativeInfinity;
 
+    private GameObject _settingsPanel;
+    private Button     _settingsButton;
+
     private OverlayState _overlayState = OverlayState.Intro;
     private LevelCompletionResult _lastResult;
 
@@ -231,6 +234,8 @@ public sealed class StartupMenuUI : MonoBehaviour
         BuildIntroPanel();
         BuildMapPanel();
         BuildCompletePanel();
+        BuildSettingsButton();
+        BuildSettingsPanel();
         RefreshResponsiveLayout(forceRouteRebuild: true);
 
         SetOverlayState(OverlayState.Intro);
@@ -635,6 +640,13 @@ public sealed class StartupMenuUI : MonoBehaviour
 
         if (_completePanel != null)
             _completePanel.SetActive(state == OverlayState.Complete);
+
+        if (_settingsPanel != null)
+            _settingsPanel.SetActive(false);
+
+        bool showSettings = state == OverlayState.Intro || state == OverlayState.Map;
+        if (_settingsButton != null)
+            _settingsButton.gameObject.SetActive(showSettings);
 
         switch (state)
         {
@@ -1254,6 +1266,197 @@ public sealed class StartupMenuUI : MonoBehaviour
         rect.anchoredPosition = safeAreaRect.center;
         rect.sizeDelta = safeAreaRect.size;
         rect.localScale = Vector3.one;
+    }
+
+    // ── Settings ──────────────────────────────────────────────────────────────
+
+    private void BuildSettingsButton()
+    {
+        RectTransform btnRect = CreateRect("SettingsButton", _overlayRoot.transform,
+            new Vector2(1f, 1f), new Vector2(1f, 1f),
+            new Vector2(-44f, -44f), new Vector2(56f, 56f));
+
+        var btnImg = btnRect.gameObject.AddComponent<Image>();
+        var gearSprite = Resources.Load<Sprite>("SettingsIcon");
+        if (gearSprite != null)
+        {
+            btnImg.sprite = gearSprite;
+            btnImg.preserveAspect = true;
+            btnImg.color = Color.white;
+        }
+        else
+        {
+            btnImg.color = new Color(0.7f, 0.7f, 0.8f, 0.9f);
+        }
+
+        _settingsButton = btnRect.gameObject.AddComponent<Button>();
+        _settingsButton.targetGraphic = btnImg;
+        ColorBlock cb = _settingsButton.colors;
+        cb.normalColor    = Color.white;
+        cb.highlightedColor = new Color(0.85f, 0.85f, 1f);
+        cb.pressedColor   = new Color(0.7f, 0.7f, 0.9f);
+        _settingsButton.colors = cb;
+        _settingsButton.onClick.AddListener(ToggleSettingsPanel);
+    }
+
+    private void BuildSettingsPanel()
+    {
+        var panelRoot = CreateUiObject("SettingsPanel", _overlayRoot.transform);
+        _settingsPanel = panelRoot;
+        RectTransform rootRect = panelRoot.GetComponent<RectTransform>();
+        StretchToParent(rootRect);
+
+        var dim = panelRoot.AddComponent<Image>();
+        dim.color = new Color(0f, 0f, 0f, 0.5f);
+        dim.raycastTarget = true;
+        var dimBtn = panelRoot.AddComponent<Button>();
+        dimBtn.targetGraphic = dim;
+        ColorBlock dimCb = dimBtn.colors;
+        dimCb.normalColor = dimCb.highlightedColor = dimCb.pressedColor = Color.white;
+        dimBtn.colors = dimCb;
+        dimBtn.onClick.AddListener(ToggleSettingsPanel);
+
+        // Card
+        RectTransform cardRect = CreateRect("Card", panelRoot.transform,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            Vector2.zero, new Vector2(300f, 230f));
+        var cardImg = cardRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(cardImg, new Color(0.98f, 0.93f, 0.78f, 0.97f));
+        var cardBtn = cardRect.gameObject.AddComponent<Button>();
+        cardBtn.targetGraphic = cardImg;
+        ColorBlock cardCb = cardBtn.colors;
+        cardCb.normalColor = cardCb.highlightedColor = cardCb.pressedColor = Color.white;
+        cardBtn.colors = cardCb;
+
+        // Title
+        RectTransform titleRect = CreateRect("Title", cardRect,
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -36f), new Vector2(220f, 40f));
+        var title = CreateText(titleRect, "Ayarlar", 28, new Color(0.42f, 0.28f, 0.16f));
+        title.fontStyle = FontStyles.Bold;
+        title.alignment = TextAlignmentOptions.Center;
+
+        // Music row
+        RectTransform musicLblRect = CreateRect("MusicLabel", cardRect,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(70f, 42f), new Vector2(90f, 30f));
+        var musicLbl = CreateText(musicLblRect, "Müzik", 20, new Color(0.42f, 0.28f, 0.16f));
+        musicLbl.alignment = TextAlignmentOptions.Left;
+
+        float initMusic = AudioManager.Instance != null ? AudioManager.Instance.MusicVolume : 0.5f;
+        CreateVolumeSlider(cardRect, new Vector2(80f, 42f), new Vector2(140f, 26f),
+            initMusic, v => AudioManager.Instance?.SetMusicVolume(v));
+
+        // SFX row
+        RectTransform sfxLblRect = CreateRect("SfxLabel", cardRect,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(70f, -10f), new Vector2(90f, 30f));
+        var sfxLbl = CreateText(sfxLblRect, "Ses Efekti", 20, new Color(0.42f, 0.28f, 0.16f));
+        sfxLbl.alignment = TextAlignmentOptions.Left;
+
+        float initSfx = AudioManager.Instance != null ? AudioManager.Instance.SfxVolume : 0.8f;
+        CreateVolumeSlider(cardRect, new Vector2(80f, -10f), new Vector2(140f, 26f),
+            initSfx, v => AudioManager.Instance?.SetSfxVolume(v));
+
+        // Close button
+        RectTransform closeRect = CreateRect("CloseButton", cardRect,
+            new Vector2(1f, 1f), new Vector2(1f, 1f),
+            new Vector2(-14f, -14f), new Vector2(30f, 30f));
+        var closeImg = closeRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(closeImg, new Color(0.85f, 0.25f, 0.25f, 1f));
+        var closeBtn = closeRect.gameObject.AddComponent<Button>();
+        closeBtn.targetGraphic = closeImg;
+        ColorBlock closeCb = closeBtn.colors;
+        closeCb.normalColor  = Color.white;
+        closeCb.pressedColor = new Color(0.7f, 0.15f, 0.15f);
+        closeBtn.colors = closeCb;
+        closeBtn.onClick.AddListener(ToggleSettingsPanel);
+
+        RectTransform xRect = CreateRect("X", closeRect,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            Vector2.zero, new Vector2(28f, 28f));
+        var xTxt = CreateText(xRect, "✕", 18, Color.white);
+        xTxt.alignment = TextAlignmentOptions.Center;
+
+        _settingsPanel.SetActive(false);
+    }
+
+    private void ToggleSettingsPanel()
+    {
+        if (_settingsPanel == null) return;
+        _settingsPanel.SetActive(!_settingsPanel.activeSelf);
+    }
+
+    private Slider CreateVolumeSlider(Transform parent, Vector2 anchoredPos, Vector2 size,
+        float initialValue, UnityEngine.Events.UnityAction<float> onChanged)
+    {
+        var go   = CreateUiObject("Slider", parent);
+        var rect = go.GetComponent<RectTransform>();
+        rect.anchorMin        = new Vector2(0.5f, 0.5f);
+        rect.anchorMax        = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPos;
+        rect.sizeDelta        = size;
+        rect.localScale       = Vector3.one;
+
+        // Background track
+        var bg = CreateUiObject("Background", go.transform);
+        var bgRect = bg.GetComponent<RectTransform>();
+        bgRect.anchorMin = new Vector2(0f, 0.25f);
+        bgRect.anchorMax = new Vector2(1f, 0.75f);
+        bgRect.offsetMin = bgRect.offsetMax = Vector2.zero;
+        bgRect.localScale = Vector3.one;
+        var bgImg = bg.AddComponent<Image>();
+        bgImg.color = new Color(0.2f, 0.2f, 0.2f, 0.6f);
+        bgImg.raycastTarget = false;
+
+        // Fill area
+        var fillArea = CreateUiObject("Fill Area", go.transform);
+        var fillAreaRect = fillArea.GetComponent<RectTransform>();
+        fillAreaRect.anchorMin = new Vector2(0f, 0.25f);
+        fillAreaRect.anchorMax = new Vector2(1f, 0.75f);
+        fillAreaRect.offsetMin = new Vector2(5f, 0f);
+        fillAreaRect.offsetMax = new Vector2(-15f, 0f);
+        fillAreaRect.localScale = Vector3.one;
+
+        var fill = CreateUiObject("Fill", fillArea.transform);
+        var fillRect = fill.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = fillRect.offsetMax = Vector2.zero;
+        fillRect.localScale = Vector3.one;
+        var fillImg = fill.AddComponent<Image>();
+        fillImg.color = new Color(0.3f, 0.6f, 1f, 1f);
+        fillImg.raycastTarget = false;
+
+        // Handle area
+        var handleArea = CreateUiObject("Handle Slide Area", go.transform);
+        var handleAreaRect = handleArea.GetComponent<RectTransform>();
+        handleAreaRect.anchorMin = Vector2.zero;
+        handleAreaRect.anchorMax = Vector2.one;
+        handleAreaRect.offsetMin = new Vector2(10f, 0f);
+        handleAreaRect.offsetMax = new Vector2(-10f, 0f);
+        handleAreaRect.localScale = Vector3.one;
+
+        var handle = CreateUiObject("Handle", handleArea.transform);
+        var handleRect = handle.GetComponent<RectTransform>();
+        handleRect.anchorMin = new Vector2(0f, 0f);
+        handleRect.anchorMax = new Vector2(0f, 1f);
+        handleRect.sizeDelta = new Vector2(22f, 0f);
+        handleRect.localScale = Vector3.one;
+        var handleImg = handle.AddComponent<Image>();
+        handleImg.color = Color.white;
+
+        var slider = go.AddComponent<Slider>();
+        slider.fillRect      = fillRect;
+        slider.handleRect    = handleRect;
+        slider.targetGraphic = handleImg;
+        slider.direction     = Slider.Direction.LeftToRight;
+        slider.minValue      = 0f;
+        slider.maxValue      = 1f;
+        slider.value         = initialValue;
+        slider.onValueChanged.AddListener(onChanged);
+
+        return slider;
     }
 
     private static Rect GetSafeAreaRectInCanvasSpace(RectTransform canvasRect)

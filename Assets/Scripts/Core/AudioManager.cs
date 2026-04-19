@@ -165,7 +165,21 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    public bool IsAudioEnabled => _audioEnabled;
+    public bool  IsAudioEnabled => _audioEnabled;
+    public float MusicVolume    => _musicVolume;
+    public float SfxVolume      => _sfxVolume;
+
+    public void SetMusicVolume(float volume)
+    {
+        _musicVolume = Mathf.Clamp01(volume);
+        if (_audioEnabled && _activeMusic != null)
+            _activeMusic.volume = _musicVolume;
+    }
+
+    public void SetSfxVolume(float volume)
+    {
+        _sfxVolume = Mathf.Clamp01(volume);
+    }
 
     [ContextMenu("Enable Audio")]
     private void DebugEnableAudio() => SetAudioEnabled(true);
