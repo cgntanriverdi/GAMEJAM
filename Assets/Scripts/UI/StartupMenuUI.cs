@@ -21,7 +21,8 @@ public sealed class StartupMenuUI : MonoBehaviour
         Hidden,
         Intro,
         Map,
-        Complete
+        Complete,
+        CharacterSelect
     }
 
     private static StartupMenuUI _instance;
@@ -41,9 +42,11 @@ public sealed class StartupMenuUI : MonoBehaviour
     private GameObject _introPanel;
     private GameObject _mapPanel;
     private GameObject _completePanel;
+    private GameObject _characterPanel;
     private RectTransform _introPanelRect;
     private RectTransform _mapPanelRect;
     private RectTransform _completePanelRect;
+    private RectTransform _characterPanelRect;
     private RectTransform _introContentRect;
     private RectTransform _mapTitleBadgeRect;
     private RectTransform _mapCardRect;
@@ -231,6 +234,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         BuildIntroPanel();
         BuildMapPanel();
         BuildCompletePanel();
+        BuildCharacterPanel();
         RefreshResponsiveLayout(forceRouteRebuild: true);
 
         SetOverlayState(OverlayState.Intro);
@@ -351,15 +355,47 @@ public sealed class StartupMenuUI : MonoBehaviour
         TextMeshProUGUI playLabel = CreateText(playLabelRect, "Play", 34f, Color.white);
         playLabel.fontStyle = FontStyles.Bold;
 
-        RectTransform hintRect = CreateRect(
-            "Hint",
-            _introContentRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -174f),
-            new Vector2(300f, 34f));
-        TextMeshProUGUI hintText = CreateText(hintRect, "Play opens a session map before the puzzle board.", 18f, new Color(1f, 1f, 1f, 0.9f));
-        hintText.enableWordWrapping = true;
+        // Choose Character butonu — Play ile aynı stil, hemen altında
+        AddIntroButton(_introContentRect, "ChooseCharacterButton", "Choose Character",
+            new Vector2(0f, -210f), HandleChooseCharacterPressed);
+    }
+
+    private Button AddIntroButton(RectTransform parent, string name, string label,
+        Vector2 position, UnityEngine.Events.UnityAction action)
+    {
+        RectTransform rect = CreateRect(name, parent,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            position, new Vector2(248f, 74f));
+        Image img = rect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(img, new Color(0.9f, 0.24f, 0.56f, 1f));
+
+        Shadow sh = rect.gameObject.AddComponent<Shadow>();
+        sh.effectColor = new Color(0f, 0f, 0f, 0.24f);
+        sh.effectDistance = new Vector2(0f, -6f);
+
+        Outline ol = rect.gameObject.AddComponent<Outline>();
+        ol.effectColor = new Color(0.76f, 0.12f, 0.41f, 0.8f);
+        ol.effectDistance = new Vector2(1f, -1f);
+
+        Button btn = rect.gameObject.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(action);
+
+        ColorBlock cb = btn.colors;
+        cb.normalColor = Color.white;
+        cb.highlightedColor = new Color(1f, 0.95f, 0.98f, 1f);
+        cb.pressedColor = new Color(0.92f, 0.84f, 0.9f, 1f);
+        cb.selectedColor = cb.highlightedColor;
+        cb.disabledColor = new Color(1f, 1f, 1f, 0.6f);
+        btn.colors = cb;
+
+        RectTransform lblRect = CreateRect("Label", rect,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            Vector2.zero, new Vector2(220f, 44f));
+        TextMeshProUGUI lbl = CreateText(lblRect, label, 28f, Color.white);
+        lbl.fontStyle = FontStyles.Bold;
+
+        return btn;
     }
 
     private void BuildMapPanel()
@@ -496,6 +532,92 @@ public sealed class StartupMenuUI : MonoBehaviour
                 StarsText = starsText
             });
         }
+    }
+
+    private void BuildCharacterPanel()
+    {
+        _characterPanel = CreateUiObject("CharacterPanel", _overlayRoot.transform);
+        _characterPanelRect = _characterPanel.GetComponent<RectTransform>();
+
+        RectTransform contentRect = CreateRect(
+            "CharacterContent",
+            _characterPanel.transform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(404f, 724f));
+
+        RectTransform ropeRect = CreateRect(
+            "Rope",
+            contentRect,
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, -28f),
+            new Vector2(10f, 120f));
+        Image ropeImage = ropeRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(ropeImage, new Color(0.48f, 0.33f, 0.21f, 0.92f));
+        ropeImage.raycastTarget = false;
+
+        RectTransform cardRect = CreateRect(
+            "CharacterCard",
+            contentRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0f, 60f),
+            new Vector2(360f, 400f));
+        Image cardImage = cardRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(cardImage, new Color(0.99f, 0.94f, 0.82f, 0.98f));
+        cardImage.raycastTarget = false;
+
+        Shadow cardShadow = cardRect.gameObject.AddComponent<Shadow>();
+        cardShadow.effectColor = new Color(0f, 0f, 0f, 0.3f);
+        cardShadow.effectDistance = new Vector2(0f, -10f);
+
+        Outline cardOutline = cardRect.gameObject.AddComponent<Outline>();
+        cardOutline.effectColor = new Color(0.72f, 0.54f, 0.24f, 0.8f);
+        cardOutline.effectDistance = new Vector2(2f, -2f);
+
+        RectTransform holeRect = CreateRect(
+            "CardHole", cardRect,
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -24f), new Vector2(28f, 28f));
+        Image holeImage = holeRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(holeImage, new Color(0.45f, 0.32f, 0.2f, 0.96f));
+        holeImage.raycastTarget = false;
+
+        RectTransform titleRect = CreateRect(
+            "Title", cardRect,
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -70f), new Vector2(300f, 44f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 32f, new Color(0.73f, 0.48f, 0.12f));
+        titleText.fontStyle = FontStyles.Bold;
+
+        // Dog / Cat / Rabbit butonları — Play ile aynı stil, dikey sıralı
+        string[] characters = { "Dog", "Cat", "Rabbit" };
+        float[] yPositions  = { 80f, -10f, -100f };
+        for (int i = 0; i < characters.Length; i++)
+        {
+            string captured = characters[i];
+            AddIntroButton(contentRect, $"{captured}Button", captured,
+                new Vector2(0f, yPositions[i] - 90f),
+                () => HandleCharacterSelected(captured));
+        }
+
+        // Geri butonu (küçük, altta)
+        RectTransform backRect = CreateRect(
+            "BackButton", contentRect,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -290f), new Vector2(180f, 54f));
+        Image backImg = backRect.gameObject.AddComponent<Image>();
+        ApplyPanelSprite(backImg, new Color(0.55f, 0.55f, 0.6f, 0.9f));
+        Button backBtn = backRect.gameObject.AddComponent<Button>();
+        backBtn.targetGraphic = backImg;
+        backBtn.onClick.AddListener(() => SetOverlayState(OverlayState.Intro));
+        RectTransform backLblRect = CreateRect("Label", backRect,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            Vector2.zero, new Vector2(160f, 36f));
+        TextMeshProUGUI backLbl = CreateText(backLblRect, "Back", 24f, Color.white);
+        backLbl.fontStyle = FontStyles.Bold;
     }
 
     private void BuildCompletePanel()
@@ -636,10 +758,14 @@ public sealed class StartupMenuUI : MonoBehaviour
         if (_completePanel != null)
             _completePanel.SetActive(state == OverlayState.Complete);
 
+        if (_characterPanel != null)
+            _characterPanel.SetActive(state == OverlayState.CharacterSelect);
+
         switch (state)
         {
             case OverlayState.Intro:
             case OverlayState.Map:
+            case OverlayState.CharacterSelect:
                 _shouldBlockAutoStart = true;
                 SetGameplayVisible(false);
                 AudioManager.Instance?.PlayMainMenuMusic();
@@ -661,6 +787,17 @@ public sealed class StartupMenuUI : MonoBehaviour
     private void HandlePlayPressed()
     {
         ShowLevelMap();
+    }
+
+    private void HandleChooseCharacterPressed()
+    {
+        SetOverlayState(OverlayState.CharacterSelect);
+    }
+
+    private void HandleCharacterSelected(string character)
+    {
+        Debug.Log($"[StartupMenuUI] Character selected: {character}");
+        SetOverlayState(OverlayState.Intro);
     }
 
     public void OpenLevelMap()
@@ -807,9 +944,11 @@ public sealed class StartupMenuUI : MonoBehaviour
         _introPanel = null;
         _mapPanel = null;
         _completePanel = null;
+        _characterPanel = null;
         _introPanelRect = null;
         _mapPanelRect = null;
         _completePanelRect = null;
+        _characterPanelRect = null;
         _introContentRect = null;
         _mapTitleBadgeRect = null;
         _mapCardRect = null;
@@ -957,6 +1096,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         ApplySafeAreaRect(_introPanelRect, safeAreaRect);
         ApplySafeAreaRect(_mapPanelRect, safeAreaRect);
         ApplySafeAreaRect(_completePanelRect, safeAreaRect);
+        ApplySafeAreaRect(_characterPanelRect, safeAreaRect);
 
         bool portrait = safeAreaRect.height >= safeAreaRect.width;
         LayoutIntroPanel(safeAreaRect.size);
