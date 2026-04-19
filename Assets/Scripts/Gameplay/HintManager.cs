@@ -6,10 +6,8 @@ using UnityEngine;
 /// <summary>
 /// Hint hakkı ekonomisi ve yol ipucu gösterimi.
 ///   - Her 3 başarılı levelda +1 hint (PlayerPrefs "HintCount").
-///   - Hint butonuna basılınca çözüm yolunun ilk %50'si 2 saniye gösterilir.
-/// Plan §7.5, §8.6 (Saat 28-34).
-///
-/// DefaultExecutionOrder(0): GameManager(10)'dan önce Start çalışır.
+///   - Oyuncu çözüm path'indeyse: kalan yolun ortasına altın indikatör.
+///   - Değilse: adım adım undo ile çözüm path'ine döndür, sonra indikatör.
 /// </summary>
 [DefaultExecutionOrder(0)]
 public class HintManager : MonoBehaviour
@@ -26,15 +24,20 @@ public class HintManager : MonoBehaviour
     [SerializeField] private GridManager       _gridManager;
 
     [Header("Reveal")]
-    [SerializeField] private float _revealDuration = 2f;
+    [SerializeField] private float _revealDuration  = 2f;
+    [SerializeField] private float _undoStepDelay   = 0.18f;
+
+    [Header("Indicator sprite (altın rengi ile gösterilir)")]
+    [SerializeField] private Sprite _indicatorSprite;
 
     [Header("UI (opsiyonel)")]
-    [SerializeField] private TextMeshProUGUI   _hintCountText;   // header'daki "🔮 2" sayacı
-    [SerializeField] private GameObject        _noHintFeedback;  // "hint yok" flash panel
+    [SerializeField] private TextMeshProUGUI   _hintCountText;
+    [SerializeField] private GameObject        _noHintFeedback;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
     private bool _revealActive;
+    private GridCoord _lastIndicatorCoord;
 
     // ── Public property ───────────────────────────────────────────────────────
 
@@ -54,15 +57,11 @@ public class HintManager : MonoBehaviour
         GameManager.Instance.OnLevelComplete -= HandleLevelComplete;
     }
 
-    // ── Public API (hint butonu çağırır) ──────────────────────────────────────
+    // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Hint butonuna bağlanacak metod.
-    /// Hint hakkı varsa pathin ilk yarısını _revealDuration saniye gösterir.
-    /// </summary>
     public void UseHint()
     {
-        if (_revealActive) return;  // zaten aktif
+        if (_revealActive) return;
 
         if (HintCount <= 0)
         {
@@ -71,38 +70,71 @@ public class HintManager : MonoBehaviour
         }
 
         PathSolution solution = GameManager.Instance.CurrentSolution;
-        if (solution == null || solution.Cells == null || solution.Cells.Count == 0) return;
+        if (solution == null || solution.Cells == null || solution.Cells.Count < 2) return;
 
-        // Hakkı harca
         PlayerPrefs.SetInt(HintCountKey, HintCount - 1);
         PlayerPrefs.Save();
         RefreshDisplay();
 
-        // İlk %50 (en az 1 hücre)
-        int halfCount  = Mathf.Max(1, solution.Cells.Count / 2);
-        var hintCells  = solution.Cells.GetRange(0, halfCount);
-
-        StartCoroutine(RevealAndHide(hintCells));
+        StartCoroutine(HintRoutine(solution));
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
-    private IEnumerator RevealAndHide(List<GridCoord> cells)
+    private IEnumerator HintRoutine(PathSolution solution)
     {
         _revealActive = true;
         AudioManager.Instance?.PlayHintReveal();
+        GameManager.Instance.SetPlayerInputEnabled(false);
 
-        // Swipe input'u durdur: hint sırasında yanlışlıkla hareket edilmesin
-        // (Input'u disable etmiyoruz — sadece görsel, oyuncu isterse oynayabilir)
+        // Eğer oyuncu çözüm path'i dışındaysa, adım adım geri sar
+        var solutionSet = new HashSet<GridCoord>(solution.Cells);
+        while (true)
+        {
+            var path = GameManager.Instance.CurrentPlayerPath;
+            if (path == null || path.Count <= 1) break;
 
-        _gridManager.ShowHintHighlight(cells);
+            GridCoord cur = path[path.Count - 1];
+            if (solutionSet.Contains(cur)) break;
+
+            GameManager.Instance.TryUndo();
+            yield return new WaitForSeconds(_undoStepDelay);
+        }
+
+        // Çözüm path'indeki mevcut konumu bul
+        var finalPath = GameManager.Instance.CurrentPlayerPath;
+        if (finalPath == null || finalPath.Count == 0)
+        {
+            GameManager.Instance.SetPlayerInputEnabled(true);
+            _revealActive = false;
+            yield break;
+        }
+
+        GridCoord currentPos = finalPath[finalPath.Count - 1];
+        int solutionIdx = solution.Cells.IndexOf(currentPos);
+        if (solutionIdx < 0) solutionIdx = 0;
+
+        // Kalan yolun (currentPos sonrası) tam ortası
+        int remaining = solution.Cells.Count - 1 - solutionIdx;
+        if (remaining <= 0)
+        {
+            GameManager.Instance.SetPlayerInputEnabled(true);
+            _revealActive = false;
+            yield break;
+        }
+
+        int midIdx = Mathf.Clamp(solutionIdx + 1 + remaining / 2,
+                                  solutionIdx + 1,
+                                  solution.Cells.Count - 1);
+        _lastIndicatorCoord = solution.Cells[midIdx];
+
+        GameManager.Instance.SetPlayerInputEnabled(true);
+        _gridManager.ShowHintTarget(_lastIndicatorCoord, _indicatorSprite);
 
         yield return new WaitForSeconds(_revealDuration);
 
-        // Highlight'ı temizle ve normal duruma dön
-        _gridManager.ClearAllHighlights();
+        _gridManager.HideHintTarget(_lastIndicatorCoord);
         GameManager.Instance.RestoreHighlights();
-
         _revealActive = false;
     }
 

@@ -209,6 +209,20 @@ public class GridManager : MonoBehaviour
             view.SetHighlight(HighlightState.None);
     }
 
+    /// <summary>Belirtilen hücreye altın rengi hint indikatörü gösterir.</summary>
+    public void ShowHintTarget(GridCoord coord, Sprite sprite)
+    {
+        if (!IsInBounds(coord)) return;
+        _views[coord.X, coord.Y].ShowHintIndicator(sprite, cellSize * 0.55f);
+    }
+
+    /// <summary>Hint indikatörünü gizler.</summary>
+    public void HideHintTarget(GridCoord coord)
+    {
+        if (!IsInBounds(coord)) return;
+        _views[coord.X, coord.Y].HideHintIndicator();
+    }
+
     /// <summary>
     /// End hücresinin kemik overlay'ini kilidi açık/kapalı olarak gösterir.
     /// GameManager, RefreshEndCellLockState() içinden çağırır.
