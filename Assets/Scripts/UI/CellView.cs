@@ -70,6 +70,14 @@ public class CellView : MonoBehaviour
         else                      { _sr.color  = new Color(0.6f, 0f, 0.9f); }
     }
 
+    /// <summary>End hücresinin arka planını gizler; sadece overlay'ler görünür kalır.</summary>
+    public void ClearBackground()
+    {
+        if (_sr == null) _sr = GetComponent<SpriteRenderer>();
+        _sr.sprite = null;
+        _sr.color  = Color.clear;
+    }
+
     /// <summary>
     /// End hücresinin üstüne kafes görselini yerleştirir (sortingOrder +2).
     /// Hücreyi tam kaplayacak şekilde ölçeklenir.

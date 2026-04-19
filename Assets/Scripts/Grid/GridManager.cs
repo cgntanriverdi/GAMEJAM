@@ -105,8 +105,9 @@ public class GridManager : MonoBehaviour
             _views[kvp.Key.X, kvp.Key.Y].SetColor(kvp.Value);
         }
 
-        // Start hücresini purple göster; end hücresinde sadece kemik + kafes overlay kalır
+        // Start hücresini purple göster; end hücresinin arka planını temizle (sadece kemik kalır)
         _views[startCoord.X, startCoord.Y].SetAsStart();
+        _views[endCoord.X,   endCoord.Y  ].ClearBackground();
 
         _endCoord = endCoord;
 
