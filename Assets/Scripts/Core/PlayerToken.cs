@@ -28,10 +28,6 @@ public class PlayerToken : MonoBehaviour
     {
         if (_sr == null) return;
 
-        // Varsayılan olarak köpekle aynı görsel boyuta gelmesi için kedi/tavşan oranını büyütüyoruz
-        // %20 daha da büyütüldü: 1.6 * 1.2 = 1.92
-        float scaleMultiplier = 1.92f;
-
         if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit)
         {
             if (rabbitSprite == null)
@@ -43,7 +39,6 @@ public class PlayerToken : MonoBehaviour
                 }
             }
             _sr.sprite = rabbitSprite != null ? rabbitSprite : _dogSprite;
-            transform.localScale = _baseScale * scaleMultiplier;
         }
         else if (CharacterManager.Current == CharacterManager.CharacterType.Cat)
         {
@@ -56,12 +51,10 @@ public class PlayerToken : MonoBehaviour
                 }
             }
             _sr.sprite = _catSprite != null ? _catSprite : _dogSprite;
-            transform.localScale = _baseScale * scaleMultiplier;
         }
         else
         {
             _sr.sprite = _dogSprite;
-            transform.localScale = _baseScale;
         }
     }
 

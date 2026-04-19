@@ -145,7 +145,12 @@ public class GameManager : MonoBehaviour
             if (sr != null && sr.sprite != null)
             {
                 float naturalSize = sr.sprite.rect.width / sr.sprite.pixelsPerUnit;
-                float targetSize  = _gridManager.CellSize * 0.7f;
+                float targetSizeRatio = 0.7f;
+                if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit || CharacterManager.Current == CharacterManager.CharacterType.Cat)
+                {
+                    targetSizeRatio = 0.7f * 1.25f;
+                }
+                float targetSize  = _gridManager.CellSize * targetSizeRatio;
                 float scale       = targetSize / naturalSize;
                 _playerToken.transform.localScale = new Vector3(scale, scale, 1f);
             }
