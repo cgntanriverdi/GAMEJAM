@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Highlight durumları — GridManager tarafından kullanılır.
@@ -16,8 +17,10 @@ public class CellView : MonoBehaviour
     private SpriteRenderer _sr;
     private SpriteRenderer _overlaySr;
     private SpriteRenderer _prisonOverlaySr;
-    private SpriteRenderer _hintIndicatorSr;
     private CellData _data;
+
+    private Coroutine _hintPulse;
+    private Vector3   _baseScale;
 
     public void Initialize(CellData data)
     {
@@ -126,35 +129,36 @@ public class CellView : MonoBehaviour
         // TODO: yönsel ok ikonlarını ve parlama efektini buraya ekle (7.6.3)
     }
 
-    public void ShowHintIndicator(Sprite sprite, float worldSize)
+    public void StartHintPulse()
     {
-        if (_sr == null) _sr = GetComponent<SpriteRenderer>();
-        if (_hintIndicatorSr == null)
-        {
-            var child = new GameObject("HintIndicator");
-            child.transform.SetParent(transform, false);
-            _hintIndicatorSr = child.AddComponent<SpriteRenderer>();
-            _hintIndicatorSr.sortingLayerName = _sr.sortingLayerName;
-            _hintIndicatorSr.sortingOrder     = _sr.sortingOrder + 3;
-        }
-        _hintIndicatorSr.sprite = sprite;
-        _hintIndicatorSr.color  = new Color(1f, 0.85f, 0.1f);
-        _hintIndicatorSr.gameObject.SetActive(true);
-
-        if (sprite != null && worldSize > 0f)
-        {
-            float ppu         = sprite.pixelsPerUnit;
-            float spriteSize  = sprite.rect.width / ppu;
-            float parentScale = transform.lossyScale.x;
-            float local       = parentScale > 0f ? (worldSize / spriteSize) / parentScale : 1f;
-            _hintIndicatorSr.transform.localScale = new Vector3(local, local, 1f);
-        }
+        StopHintPulse();
+        _baseScale = transform.localScale;
+        _hintPulse = StartCoroutine(PulseRoutine());
     }
 
-    public void HideHintIndicator()
+    public void StopHintPulse()
     {
-        if (_hintIndicatorSr != null)
-            _hintIndicatorSr.gameObject.SetActive(false);
+        if (_hintPulse != null)
+        {
+            StopCoroutine(_hintPulse);
+            _hintPulse = null;
+        }
+        if (_baseScale != Vector3.zero)
+            transform.localScale = _baseScale;
+    }
+
+    private IEnumerator PulseRoutine()
+    {
+        float elapsed = 0f;
+        const float speed = 6f;      // ~1 tam salınım / saniye
+        const float amplitude = 0.12f;
+        while (true)
+        {
+            float factor = 1f + amplitude * Mathf.Sin(elapsed * speed);
+            transform.localScale = _baseScale * factor;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
     }
 
     public Sprite GetSprite(CellColor color) => SpriteForCell(color);

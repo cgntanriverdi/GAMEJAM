@@ -209,18 +209,18 @@ public class GridManager : MonoBehaviour
             view.SetHighlight(HighlightState.None);
     }
 
-    /// <summary>Belirtilen hücreye altın rengi hint indikatörü gösterir.</summary>
-    public void ShowHintTarget(GridCoord coord, Sprite sprite)
+    /// <summary>Belirtilen hücreyi hint pulse animasyonuyla vurgular.</summary>
+    public void ShowHintTarget(GridCoord coord)
     {
         if (!IsInBounds(coord)) return;
-        _views[coord.X, coord.Y].ShowHintIndicator(sprite, cellSize * 0.55f);
+        _views[coord.X, coord.Y].StartHintPulse();
     }
 
-    /// <summary>Hint indikatörünü gizler.</summary>
+    /// <summary>Hint pulse animasyonunu durdurur.</summary>
     public void HideHintTarget(GridCoord coord)
     {
         if (!IsInBounds(coord)) return;
-        _views[coord.X, coord.Y].HideHintIndicator();
+        _views[coord.X, coord.Y].StopHintPulse();
     }
 
     /// <summary>

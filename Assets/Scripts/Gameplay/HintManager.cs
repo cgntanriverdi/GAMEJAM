@@ -27,9 +27,6 @@ public class HintManager : MonoBehaviour
     [SerializeField] private float _revealDuration  = 2f;
     [SerializeField] private float _undoStepDelay   = 0.18f;
 
-    [Header("Indicator sprite (altın rengi ile gösterilir)")]
-    [SerializeField] private Sprite _indicatorSprite;
-
     [Header("UI (opsiyonel)")]
     [SerializeField] private TextMeshProUGUI   _hintCountText;
     [SerializeField] private GameObject        _noHintFeedback;
@@ -129,7 +126,7 @@ public class HintManager : MonoBehaviour
         _lastIndicatorCoord = solution.Cells[midIdx];
 
         GameManager.Instance.SetPlayerInputEnabled(true);
-        _gridManager.ShowHintTarget(_lastIndicatorCoord, _indicatorSprite);
+        _gridManager.ShowHintTarget(_lastIndicatorCoord);
 
         yield return new WaitForSeconds(_revealDuration);
 
