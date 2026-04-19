@@ -152,6 +152,7 @@ MonoBehaviour:
   gridWorldSize: 12
   spacingRatio: 0.05
   boneSprite: {fileID: 4010562923862242353, guid: d4822ddebada33a4c9001fb2b273de1e, type: 3}
+  prisonSprite: {fileID: 3821947650123456789, guid: c9e1f2a3b4d5e6f708192a3b4c5d6e7f, type: 3}
 --- !u!4 &48348256
 Transform:
   m_ObjectHideFlags: 0
