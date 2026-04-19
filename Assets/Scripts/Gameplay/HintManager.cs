@@ -14,9 +14,7 @@ public class HintManager : MonoBehaviour
 {
     // ── PlayerPrefs keys ──────────────────────────────────────────────────────
 
-    private const string HintCountKey      = "HintCount";
-    private const string LevelsSinceHintKey = "LevelsSinceHint";
-    private const int    LevelsPerHint      = 3;
+    private const string HintCountKey = "HintCount";
 
     // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -137,18 +135,8 @@ public class HintManager : MonoBehaviour
 
     private void HandleLevelComplete()
     {
-        int levelsSince = PlayerPrefs.GetInt(LevelsSinceHintKey, 0) + 1;
-
-        if (levelsSince >= LevelsPerHint)
-        {
-            levelsSince = 0;
-            int newCount = HintCount + 1;
-            PlayerPrefs.SetInt(HintCountKey, newCount);
-            Debug.Log($"[HintManager] +1 hint kazanıldı! Toplam: {newCount}");
-            // TODO: "Hint Kazandın!" toast animasyonu
-        }
-
-        PlayerPrefs.SetInt(LevelsSinceHintKey, levelsSince);
+        int newCount = HintCount + 1;
+        PlayerPrefs.SetInt(HintCountKey, newCount);
         PlayerPrefs.Save();
         RefreshDisplay();
     }
