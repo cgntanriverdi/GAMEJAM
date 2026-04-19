@@ -62,7 +62,7 @@ Editor / klavye testi:
 - Seviye haritası ve kilit açma akışı
 - Zamanlayıcı, yıldız ve kişisel rekor sistemi
 - Geri alma sistemi
-- İpucu sistemi
+- İpucu sistemi: Oyuncu doğru yol üzerindeyse kalan doğru hücrelerin yaklaşık %50'si gösterilir; yanlış yoldaysa önce son doğru hücreye geri döndürülür, ardından ipucu gösterilir.
 - Karakter seçimi: köpek, kedi ve tavşan
 - Karaktere göre hedef görseli değişimi
 - Ayarlar paneli: müzik ve ses efekti seviyesi
