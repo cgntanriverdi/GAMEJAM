@@ -270,7 +270,10 @@ public class GameManager : MonoBehaviour
     {
         if (_solution == null || _runState == null || _validator == null) return;
         GridCoord current = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
-        bool isUnlocked = _validator.IsEndUnlocked(current, _runState, _solution);
+        GridCoord endCoord = _solution.Cells[_solution.Cells.Count - 1];
+        // Oyuncu end cell'in üzerindeyse (win anı) da kilidi açık tut
+        bool isUnlocked = current.Equals(endCoord) ||
+                          _validator.IsEndUnlocked(current, _runState, _solution);
         _gridManager.SetEndCellLockVisual(isUnlocked);
     }
 
