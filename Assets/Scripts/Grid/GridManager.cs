@@ -219,6 +219,7 @@ public class GridManager : MonoBehaviour
     /// <summary>Karakter değişince çağrılır: kemik↔havuç overlay'ini günceller.</summary>
     public void RefreshEndCellItem()
     {
+        if (_views == null) return;
         Sprite itemSprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null
             ? carrotSprite : boneSprite;
         if (itemSprite != null)
