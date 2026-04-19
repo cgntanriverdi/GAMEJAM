@@ -539,32 +539,28 @@ public sealed class StartupMenuUI : MonoBehaviour
         _characterPanel = CreateUiObject("CharacterPanel", _overlayRoot.transform);
         _characterPanelRect = _characterPanel.GetComponent<RectTransform>();
 
+        // contentRect kart + back butonunu barındıracak kadar geniş/uzun
         RectTransform contentRect = CreateRect(
             "CharacterContent",
             _characterPanel.transform,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(404f, 724f));
+            new Vector2(560f, 860f));
 
         RectTransform ropeRect = CreateRect(
-            "Rope",
-            contentRect,
-            new Vector2(0.5f, 1f),
-            new Vector2(0.5f, 1f),
-            new Vector2(0f, -28f),
-            new Vector2(10f, 120f));
+            "Rope", contentRect,
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -28f), new Vector2(10f, 150f));
         Image ropeImage = ropeRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(ropeImage, new Color(0.48f, 0.33f, 0.21f, 0.92f));
         ropeImage.raycastTarget = false;
 
+        // Kart 1.5x büyütüldü: 360→540, 400→600; merkez (0,60) aynı
         RectTransform cardRect = CreateRect(
-            "CharacterCard",
-            contentRect,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 60f),
-            new Vector2(360f, 400f));
+            "CharacterCard", contentRect,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(0f, 60f), new Vector2(540f, 600f));
         Image cardImage = cardRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(cardImage, new Color(0.99f, 0.94f, 0.82f, 0.98f));
         cardImage.raycastTarget = false;
@@ -580,34 +576,37 @@ public sealed class StartupMenuUI : MonoBehaviour
         RectTransform holeRect = CreateRect(
             "CardHole", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -24f), new Vector2(28f, 28f));
+            new Vector2(0f, -28f), new Vector2(32f, 32f));
         Image holeImage = holeRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(holeImage, new Color(0.45f, 0.32f, 0.2f, 0.96f));
         holeImage.raycastTarget = false;
 
+        // Title: font %5 küçük (32→30), kart genişliğine uygun
         RectTransform titleRect = CreateRect(
             "Title", cardRect,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -70f), new Vector2(300f, 44f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 32f, new Color(0.73f, 0.48f, 0.12f));
+            new Vector2(0f, -75f), new Vector2(460f, 48f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Choose Character", 30f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
 
-        // Dog / Cat / Rabbit butonları — Play ile aynı stil, dikey sıralı
+        // Butonlar kart içinde dikey sıralı — aralık 90px (74 yükseklik + 16 boşluk)
+        // Kart: merkez (0,60), yükseklik 600 → üst:360, alt:-240 (contentRect'te)
+        // Butonlar contentRect'te: Dog=155, Cat=65, Rabbit=-25
         string[] characters = { "Dog", "Cat", "Rabbit" };
-        float[] yPositions  = { 80f, -10f, -100f };
+        float[] yPositions   = { 155f, 65f, -25f };
         for (int i = 0; i < characters.Length; i++)
         {
             string captured = characters[i];
             AddIntroButton(contentRect, $"{captured}Button", captured,
-                new Vector2(0f, yPositions[i] - 90f),
+                new Vector2(0f, yPositions[i]),
                 () => HandleCharacterSelected(captured));
         }
 
-        // Geri butonu (küçük, altta)
+        // Back butonu kartın tam altında: kart alt kenarı=-240, boşluk+yarı yükseklik=43 → y=-283
         RectTransform backRect = CreateRect(
             "BackButton", contentRect,
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -290f), new Vector2(180f, 54f));
+            new Vector2(0f, -283f), new Vector2(180f, 54f));
         Image backImg = backRect.gameObject.AddComponent<Image>();
         ApplyPanelSprite(backImg, new Color(0.55f, 0.55f, 0.6f, 0.9f));
         Button backBtn = backRect.gameObject.AddComponent<Button>();
