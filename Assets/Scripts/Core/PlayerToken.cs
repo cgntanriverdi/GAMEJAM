@@ -20,13 +20,26 @@ public class PlayerToken : MonoBehaviour
         _dogSprite = _sr != null ? _sr.sprite : null;
     }
 
-    /// <summary>CharacterManager.Current'e göre sprite'ı günceller.</summary>
     public void ApplyCharacter()
     {
         if (_sr == null) return;
-        _sr.sprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && rabbitSprite != null
-            ? rabbitSprite
-            : _dogSprite;
+
+        if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit)
+        {
+            if (rabbitSprite == null)
+            {
+                var sprites = Resources.LoadAll<Sprite>("rabbit_final");
+                if (sprites != null && sprites.Length > 0)
+                {
+                    rabbitSprite = sprites[0];
+                }
+            }
+            _sr.sprite = rabbitSprite != null ? rabbitSprite : _dogSprite;
+        }
+        else
+        {
+            _sr.sprite = _dogSprite;
+        }
     }
 
     public void MoveTo(Vector3 targetPos)

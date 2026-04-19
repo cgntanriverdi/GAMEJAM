@@ -610,6 +610,20 @@ public sealed class StartupMenuUI : MonoBehaviour
                 new Vector2(-120f, yPositions[i]),
                 () => HandleCharacterSelected(captured),
                 charBtnSize);
+
+            if (captured == "Rabbit")
+            {
+                RectTransform rabbitImgRect = CreateRect(
+                    "RabbitImage", contentRect,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                Image rabbitImg = rabbitImgRect.gameObject.AddComponent<Image>();
+                var sprites = Resources.LoadAll<Sprite>("rabbit_final");
+                if (sprites != null && sprites.Length > 0)
+                {
+                    rabbitImg.sprite = sprites[0];
+                }
+            }
         }
 
         // Back butonu kartın tam altında: kart alt=-270, boşluk 16, back yarısı 27 → y=-313
