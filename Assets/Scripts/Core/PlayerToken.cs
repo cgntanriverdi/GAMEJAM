@@ -20,6 +20,8 @@ public class PlayerToken : MonoBehaviour
         _dogSprite = _sr != null ? _sr.sprite : null;
     }
 
+    private Sprite _catSprite;
+
     public void ApplyCharacter()
     {
         if (_sr == null) return;
@@ -35,6 +37,18 @@ public class PlayerToken : MonoBehaviour
                 }
             }
             _sr.sprite = rabbitSprite != null ? rabbitSprite : _dogSprite;
+        }
+        else if (CharacterManager.Current == CharacterManager.CharacterType.Cat)
+        {
+            if (_catSprite == null)
+            {
+                var sprites = Resources.LoadAll<Sprite>("kedi_final");
+                if (sprites != null && sprites.Length > 0)
+                {
+                    _catSprite = sprites[0];
+                }
+            }
+            _sr.sprite = _catSprite != null ? _catSprite : _dogSprite;
         }
         else
         {

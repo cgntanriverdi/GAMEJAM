@@ -4,7 +4,7 @@
 /// </summary>
 public static class CharacterManager
 {
-    public enum CharacterType { Dog, Rabbit }
+    public enum CharacterType { Dog, Rabbit, Cat }
 
     public static CharacterType Current { get; private set; } = CharacterType.Dog;
 

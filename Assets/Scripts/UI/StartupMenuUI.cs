@@ -624,6 +624,19 @@ public sealed class StartupMenuUI : MonoBehaviour
                     rabbitImg.sprite = sprites[0];
                 }
             }
+            else if (captured == "Cat")
+            {
+                RectTransform catImgRect = CreateRect(
+                    "CatImage", contentRect,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                Image catImg = catImgRect.gameObject.AddComponent<Image>();
+                var sprites = Resources.LoadAll<Sprite>("kedi_final");
+                if (sprites != null && sprites.Length > 0)
+                {
+                    catImg.sprite = sprites[0];
+                }
+            }
         }
 
         // Back butonu kartın tam altında: kart alt=-270, boşluk 16, back yarısı 27 → y=-313
@@ -819,9 +832,9 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private void HandleCharacterSelected(string character)
     {
-        CharacterManager.CharacterType type = character == "Rabbit"
-            ? CharacterManager.CharacterType.Rabbit
-            : CharacterManager.CharacterType.Dog;
+        CharacterManager.CharacterType type = CharacterManager.CharacterType.Dog;
+        if (character == "Rabbit") type = CharacterManager.CharacterType.Rabbit;
+        else if (character == "Cat") type = CharacterManager.CharacterType.Cat;
 
         CharacterManager.Select(type);
 

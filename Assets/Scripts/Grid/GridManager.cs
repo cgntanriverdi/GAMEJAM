@@ -27,6 +27,7 @@ public class GridManager : MonoBehaviour
     [SerializeField] private Sprite boneSprite;
     [SerializeField] private Sprite carrotSprite;
     [SerializeField] private Sprite prisonSprite;
+    private Sprite _catFoodSprite;
 
     private int _width;
     private int _height;
@@ -113,8 +114,20 @@ public class GridManager : MonoBehaviour
         _endCoord = endCoord;
 
         // End hücresine katman sırası: kemik/havuç (ortada) → kafes (en üstte, başlangıçta görünür)
-        Sprite itemSprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null
-            ? carrotSprite : boneSprite;
+        Sprite itemSprite = boneSprite;
+        if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null)
+        {
+            itemSprite = carrotSprite;
+        }
+        else if (CharacterManager.Current == CharacterManager.CharacterType.Cat)
+        {
+            if (_catFoodSprite == null)
+            {
+                var sprites = Resources.LoadAll<Sprite>("kedimaması_final");
+                if (sprites != null && sprites.Length > 0) _catFoodSprite = sprites[0];
+            }
+            if (_catFoodSprite != null) itemSprite = _catFoodSprite;
+        }
         if (itemSprite != null)
             _views[endCoord.X, endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
 
@@ -220,8 +233,20 @@ public class GridManager : MonoBehaviour
     public void RefreshEndCellItem()
     {
         if (_views == null) return;
-        Sprite itemSprite = CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null
-            ? carrotSprite : boneSprite;
+        Sprite itemSprite = boneSprite;
+        if (CharacterManager.Current == CharacterManager.CharacterType.Rabbit && carrotSprite != null)
+        {
+            itemSprite = carrotSprite;
+        }
+        else if (CharacterManager.Current == CharacterManager.CharacterType.Cat)
+        {
+            if (_catFoodSprite == null)
+            {
+                var sprites = Resources.LoadAll<Sprite>("kedimaması_final");
+                if (sprites != null && sprites.Length > 0) _catFoodSprite = sprites[0];
+            }
+            if (_catFoodSprite != null) itemSprite = _catFoodSprite;
+        }
         if (itemSprite != null)
             _views[_endCoord.X, _endCoord.Y].ShowOverlay(itemSprite, cellSize * 0.85f);
     }
