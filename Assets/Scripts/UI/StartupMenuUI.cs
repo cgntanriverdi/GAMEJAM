@@ -337,7 +337,7 @@ public sealed class StartupMenuUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, 38f),
             new Vector2(280f, 120f));
-        TextMeshProUGUI titleText = CreateText(titleRect, "Renk\nYolu", 54f, new Color(0.73f, 0.48f, 0.12f));
+        TextMeshProUGUI titleText = CreateText(titleRect, "Acıkmış\nPatiler", 54f, new Color(0.73f, 0.48f, 0.12f));
         titleText.fontStyle = FontStyles.Bold;
         titleText.lineSpacing = -12f;
 
