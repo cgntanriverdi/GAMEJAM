@@ -190,12 +190,19 @@ public class GameManager : MonoBehaviour
                 break;
 
             case MoveOutcome.InvalidColorOverflow:
+            {
                 // Hangi renk taştı: hedefi aşan ilk rengi bul
                 CellColor overflowColor = FindOverflowColor(result, target);
                 _counterPanel.TriggerOverflowFeedback(overflowColor);
+                // Renk kotası dolduğunda da hedefe sekip geri dön
+                GridCoord curOF = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+                _playerToken?.BounceToward(
+                    _gridManager.GetWorldPosition(curOF),
+                    _gridManager.GetWorldPosition(target));
                 TriggerVibration();
                 OnInvalidMove(result.Outcome);
                 break;
+            }
 
             case MoveOutcome.InvalidEndLocked:
             {
