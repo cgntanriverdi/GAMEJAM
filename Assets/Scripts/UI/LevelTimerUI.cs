@@ -33,6 +33,10 @@ public sealed class LevelTimerUI : MonoBehaviour
         ForceDisplay(Time.unscaledTime - _startedAtUnscaled);
     }
 
+    public float ElapsedSeconds => _isRunning
+        ? Time.unscaledTime - _startedAtUnscaled
+        : _frozenElapsedSeconds;
+
     public void ResetDisplay()
     {
         _isRunning = false;
@@ -51,7 +55,7 @@ public sealed class LevelTimerUI : MonoBehaviour
         ForceDisplay(0f);
     }
 
-    public void StopTimer()
+    public float StopTimer()
     {
         if (_isRunning)
             _frozenElapsedSeconds = Time.unscaledTime - _startedAtUnscaled;
@@ -59,6 +63,7 @@ public sealed class LevelTimerUI : MonoBehaviour
         _isRunning = false;
         _lastDisplayedWholeSeconds = -1;
         ForceDisplay(_frozenElapsedSeconds);
+        return _frozenElapsedSeconds;
     }
 
     private void CacheReferences()

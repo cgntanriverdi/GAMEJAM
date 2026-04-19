@@ -1,20 +1,33 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Level sırasını yönetir; LevelDefinitionAsset'lerden veya dahili
-/// tier tablosundan LevelDefinition üretir ve GameManager'a iletir.
-/// PathGenerator başarısız olursa: curated asset → snake pattern fallback.
-/// Plan §7.5, §8.7.
+/// Session içi level map'ini yönetir; LevelDefinitionAsset'lerden veya dahili
+/// tier tablosundan LevelDefinition üretir, çözümü sabit seed ile hazırlar ve
+/// GameManager'a iletir. PathGenerator başarısız olursa: curated asset →
+/// snake pattern fallback.
 ///
 /// DefaultExecutionOrder(0):
 ///   ProgressionService(-10).Start'tan sonra,
 ///   GameManager(10).Start'tan önce çalışır.
-///   → ProgressionService.CurrentLevel hazır; StartLevel henüz ateşlenmemiş.
 /// </summary>
 [DefaultExecutionOrder(0)]
 public class LevelManager : MonoBehaviour
 {
+    private sealed class SessionLevelState
+    {
+        public LevelDefinition Definition;
+        public PathSolution Solution;
+        public PathSolution Fallback;
+        public int GridSeed;
+        public int BestStars;
+        public float BestTimeSeconds = float.PositiveInfinity;
+        public float ThreeStarSeconds;
+        public float TwoStarSeconds;
+        public bool IsUnlocked;
+    }
+
     // ── Singleton ─────────────────────────────────────────────────────────────
 
     public static LevelManager Instance { get; private set; }
@@ -24,57 +37,181 @@ public class LevelManager : MonoBehaviour
     [Header("Level assets (boş slotlar tier tablosuna düşer)")]
     [SerializeField] private LevelDefinitionAsset[] _levelAssets;
 
+    [Header("Session map")]
+    [SerializeField] [Min(1)] private int _sessionLevelCount = 10;
+
+    private readonly List<SessionLevelState> _sessionLevels = new();
+    private int _activeLevelIndex = -1;
+    private int _highestUnlockedLevelIndex;
+
+    public int ActiveLevelIndex => _activeLevelIndex;
+    public int SessionLevelCount => _sessionLevels.Count;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        BuildSessionCatalog();
     }
 
     private void Start()
     {
-        // ProgressionService(-10) OnLevelComplete'e ilk abone → CurrentLevel önceden artar.
-        // LevelManager(0) ikinci abone → doğru level'ı yükler.
-        GameManager.Instance.OnLevelComplete += HandleLevelComplete;
-
         if (!StartupMenuUI.ShouldBlockAutoStart)
             LoadCurrentLevel();
     }
 
     private void OnDestroy()
     {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnLevelComplete -= HandleLevelComplete;
+        if (Instance == this)
+            Instance = null;
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// ProgressionService.CurrentLevel'a göre level'ı yükler.
-    /// GameManager.StartLevel'a hem LevelDefinition hem fallback iletilir.
+    /// Session içinde aktif level varsa onu, yoksa açılmış en son level'ı yükler.
     /// </summary>
-    public void LoadCurrentLevel()
+    public bool LoadCurrentLevel()
     {
-        int idx = ProgressionService.Instance.CurrentLevel;
-        LevelDefinition  def      = GetDefinition(idx);
-        PathSolution     fallback = GetFallback(def);
+        if (_sessionLevels.Count == 0)
+            return false;
 
-        GameManager.Instance.StartLevel(def, fallback);
+        int idx = _activeLevelIndex >= 0
+            ? _activeLevelIndex
+            : Mathf.Clamp(_highestUnlockedLevelIndex, 0, _sessionLevels.Count - 1);
 
-        Debug.Log($"[LevelManager] Level {idx + 1} yüklendi — " +
-                  $"{def.Width}x{def.Height}, minPath={def.MinPathLength}, renkler={def.ActiveColorCount}");
+        return LoadLevel(idx);
+    }
+
+    public bool ReloadActiveLevel()
+    {
+        if (_sessionLevels.Count == 0)
+            return false;
+
+        int idx = _activeLevelIndex >= 0 ? _activeLevelIndex : 0;
+        return LoadLevel(idx);
+    }
+
+    public bool LoadLevel(int levelIndex)
+    {
+        if (!IsValidLevelIndex(levelIndex))
+        {
+            Debug.LogWarning($"[LevelManager] Geçersiz level index: {levelIndex}");
+            return false;
+        }
+
+        if (!IsLevelUnlocked(levelIndex))
+        {
+            Debug.LogWarning($"[LevelManager] Kilitli level seçildi: {levelIndex + 1}");
+            return false;
+        }
+
+        if (GameManager.Instance == null)
+            return false;
+
+        SessionLevelState entry = _sessionLevels[levelIndex];
+        _activeLevelIndex = levelIndex;
+
+        GameManager.Instance.StartLevel(
+            entry.Definition,
+            sessionSolution: entry.Solution,
+            gridSeed: entry.GridSeed,
+            curatedFallback: entry.Fallback);
+
+        Debug.Log($"[LevelManager] Session level {levelIndex + 1} yüklendi — " +
+                  $"{entry.Definition.Width}x{entry.Definition.Height}, minPath={entry.Definition.MinPathLength}, renkler={entry.Definition.ActiveColorCount}");
+        return true;
+    }
+
+    public bool IsLevelUnlocked(int levelIndex) =>
+        IsValidLevelIndex(levelIndex) && _sessionLevels[levelIndex].IsUnlocked;
+
+    public int GetBestStars(int levelIndex) =>
+        IsValidLevelIndex(levelIndex) ? _sessionLevels[levelIndex].BestStars : 0;
+
+    public float GetBestTimeSeconds(int levelIndex)
+    {
+        if (!IsValidLevelIndex(levelIndex))
+            return 0f;
+
+        float bestTime = _sessionLevels[levelIndex].BestTimeSeconds;
+        return float.IsPositiveInfinity(bestTime) ? 0f : bestTime;
+    }
+
+    public bool TryGetNextUnlockedLevelIndex(int currentLevelIndex, out int nextLevelIndex)
+    {
+        nextLevelIndex = currentLevelIndex + 1;
+        return IsLevelUnlocked(nextLevelIndex);
+    }
+
+    public int CalculateStars(int levelIndex, float elapsedSeconds)
+    {
+        if (!IsValidLevelIndex(levelIndex))
+            return 1;
+
+        SessionLevelState entry = _sessionLevels[levelIndex];
+        if (elapsedSeconds <= entry.ThreeStarSeconds) return 3;
+        if (elapsedSeconds <= entry.TwoStarSeconds)   return 2;
+        return 1;
+    }
+
+    public LevelCompletionResult RecordLevelResult(int levelIndex, float elapsedSeconds, int starsEarned)
+    {
+        if (!IsValidLevelIndex(levelIndex))
+            return new LevelCompletionResult(levelIndex, elapsedSeconds, starsEarned, starsEarned, elapsedSeconds, true);
+
+        SessionLevelState entry = _sessionLevels[levelIndex];
+        int previousBestStars = entry.BestStars;
+        float previousBestTime = entry.BestTimeSeconds;
+
+        entry.BestStars = Mathf.Max(entry.BestStars, starsEarned);
+        entry.BestTimeSeconds = float.IsPositiveInfinity(entry.BestTimeSeconds)
+            ? elapsedSeconds
+            : Mathf.Min(entry.BestTimeSeconds, elapsedSeconds);
+
+        bool isNewBest = entry.BestStars > previousBestStars
+            || float.IsPositiveInfinity(previousBestTime)
+            || elapsedSeconds < previousBestTime - 0.001f;
+
+        int nextLevelIndex = levelIndex + 1;
+        if (IsValidLevelIndex(nextLevelIndex))
+        {
+            _sessionLevels[nextLevelIndex].IsUnlocked = true;
+            _highestUnlockedLevelIndex = Mathf.Max(_highestUnlockedLevelIndex, nextLevelIndex);
+        }
+
+        return new LevelCompletionResult(
+            levelIndex,
+            elapsedSeconds,
+            starsEarned,
+            entry.BestStars,
+            entry.BestTimeSeconds,
+            isNewBest);
     }
 
     // ── Level config ──────────────────────────────────────────────────────────
 
     private LevelDefinition GetDefinition(int idx)
     {
-        if (idx < _levelAssets.Length && _levelAssets[idx] != null)
-            return _levelAssets[idx].Definition;
+        if (_levelAssets != null && idx < _levelAssets.Length && _levelAssets[idx] != null)
+            return CloneDefinition(_levelAssets[idx].Definition, idx);
 
         return BuildTierDefinition(idx);
     }
+
+    private static LevelDefinition CloneDefinition(LevelDefinition source, int idx) =>
+        new LevelDefinition
+        {
+            LevelIndex = idx,
+            Width = source.Width,
+            Height = source.Height,
+            MinPathLength = source.MinPathLength,
+            MaxPathLength = source.MaxPathLength,
+            ActiveColorCount = source.ActiveColorCount,
+            AllowGeneratedLevel = source.AllowGeneratedLevel
+        };
 
     /// <summary>
     /// Tier tablosu — min/max = RENK hücresi sayısı (start ve end HARİÇ).
@@ -113,16 +250,63 @@ public class LevelManager : MonoBehaviour
 
     // ── Fallback ──────────────────────────────────────────────────────────────
 
-    private PathSolution GetFallback(LevelDefinition def)
+    private void BuildSessionCatalog()
+    {
+        if (_sessionLevels.Count > 0)
+            return;
+
+        int assetCount = _levelAssets != null ? _levelAssets.Length : 0;
+        int levelCount = Mathf.Max(_sessionLevelCount, Mathf.Max(assetCount, 1));
+        var random = new System.Random(unchecked(Environment.TickCount ^ GetInstanceID()));
+
+        for (int idx = 0; idx < levelCount; idx++)
+        {
+            LevelDefinition definition = GetDefinition(idx);
+            int gridSeed = random.Next(1, int.MaxValue);
+            int pathSeed = random.Next(1, int.MaxValue);
+
+            PathSolution fallback = GetFallback(definition, pathSeed);
+            PathSolution solution = BuildSessionSolution(definition, pathSeed, fallback);
+
+            BuildStarThresholds(solution, out float threeStarSeconds, out float twoStarSeconds);
+
+            _sessionLevels.Add(new SessionLevelState
+            {
+                Definition = definition,
+                Solution = solution,
+                Fallback = fallback,
+                GridSeed = gridSeed,
+                ThreeStarSeconds = threeStarSeconds,
+                TwoStarSeconds = twoStarSeconds,
+                IsUnlocked = idx == 0
+            });
+        }
+
+        _highestUnlockedLevelIndex = 0;
+    }
+
+    private PathSolution BuildSessionSolution(LevelDefinition def, int pathSeed, PathSolution fallback)
+    {
+        if (def.AllowGeneratedLevel)
+        {
+            PathSolution generated = new PathGenerator().Generate(def, pathSeed);
+            if (generated != null)
+                return generated;
+        }
+
+        return fallback ?? BuildSnakeFallback(def, pathSeed);
+    }
+
+    private PathSolution GetFallback(LevelDefinition def, int seed)
     {
         int idx = def.LevelIndex;
 
         // 1. Önce asset curated path
-        if (idx < _levelAssets.Length && _levelAssets[idx]?.HasCuratedPath == true)
-            return _levelAssets[idx].BuildCuratedSolution();
+        if (_levelAssets != null && idx < _levelAssets.Length && _levelAssets[idx]?.HasCuratedPath == true)
+            return _levelAssets[idx].BuildCuratedSolution(seed);
 
         // 2. Garantili snake pattern
-        return BuildSnakeFallback(def);
+        return BuildSnakeFallback(def, seed);
     }
 
     /// <summary>
@@ -130,7 +314,7 @@ public class LevelManager : MonoBehaviour
     /// End hücresi (width-1, height-1)'e ulaşınca durur.
     /// Her grid boyutu ve yüksekliği için garantili çalışır.
     /// </summary>
-    private static PathSolution BuildSnakeFallback(LevelDefinition def)
+    private static PathSolution BuildSnakeFallback(LevelDefinition def, int seed)
     {
         var end  = new GridCoord(def.Width - 1, def.Height - 1);
         var path = new List<GridCoord>();
@@ -151,18 +335,15 @@ public class LevelManager : MonoBehaviour
             }
         }
 
-        CellColor[] palette = BuildPalette(def.ActiveColorCount);
-        var counts          = new Dictionary<CellColor, int>();
+        Dictionary<GridCoord, CellColor> pathColors = BuildPathColors(path, BuildPalette(def.ActiveColorCount), seed);
+        Dictionary<CellColor, int> counts = BuildTargetCounts(path, pathColors);
 
-        // Sadece orta hücreler sayılır (start=0 ve end=son hariç)
-        for (int i = 1; i < path.Count - 1; i++)
+        return new PathSolution
         {
-            var c = palette[(i - 1) % palette.Length];
-            counts.TryGetValue(c, out int prev);
-            counts[c] = prev + 1;
-        }
-
-        return new PathSolution { Cells = path, TargetColorCounts = counts };
+            Cells = path,
+            TargetColorCounts = counts,
+            PathColors = pathColors
+        };
     }
 
     private static CellColor[] BuildPalette(int activeCount)
@@ -174,15 +355,48 @@ public class LevelManager : MonoBehaviour
         return palette;
     }
 
-    // ── Event handler ─────────────────────────────────────────────────────────
-
-    private void HandleLevelComplete()
+    private static Dictionary<GridCoord, CellColor> BuildPathColors(
+        IReadOnlyList<GridCoord> path,
+        CellColor[] palette,
+        int seed)
     {
-        // ProgressionService(-10) önceden CurrentLevel'ı artırdı; sadece yükle.
-        LoadCurrentLevel();
+        var result = new Dictionary<GridCoord, CellColor>(path.Count);
+        var random = new System.Random(seed);
+
+        for (int i = 0; i < path.Count; i++)
+        {
+            CellColor color = palette[random.Next(0, palette.Length)];
+            result[path[i]] = color;
+        }
+
+        return result;
     }
+
+    private static Dictionary<CellColor, int> BuildTargetCounts(
+        IReadOnlyList<GridCoord> path,
+        Dictionary<GridCoord, CellColor> pathColors)
+    {
+        var result = new Dictionary<CellColor, int>();
+        for (int i = 1; i < path.Count - 1; i++)
+        {
+            CellColor color = pathColors[path[i]];
+            result.TryGetValue(color, out int prev);
+            result[color] = prev + 1;
+        }
+
+        return result;
+    }
+
+    private static void BuildStarThresholds(PathSolution solution, out float threeStarSeconds, out float twoStarSeconds)
+    {
+        int moveCount = Mathf.Max(1, solution.Cells.Count - 1);
+        threeStarSeconds = Mathf.Max(12f, moveCount * 3.5f);
+        twoStarSeconds = Mathf.Max(18f, moveCount * 5f);
+    }
+
+    private bool IsValidLevelIndex(int levelIndex) =>
+        levelIndex >= 0 && levelIndex < _sessionLevels.Count;
 }
 
-// Kullanacak scriptler: GameManager (StartLevel çağrısı — LevelDefinition + fallback),
-//                       ProgressionService (CurrentLevel okur),
-//                       MainMenu (LoadCurrentLevel çağrısı)
+// Kullanacak scriptler: GameManager (StartLevel çağrısı — session çözümü + grid seed),
+//                       StartupMenuUI (map verisi ve level yükleme)

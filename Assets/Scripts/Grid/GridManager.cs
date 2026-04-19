@@ -34,8 +34,11 @@ public class GridManager : MonoBehaviour
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>LevelDefinition'a göre grid'i sıfırdan oluşturur.</summary>
-    public void Initialize(LevelDefinition def)
+    public void Initialize(LevelDefinition def, int seed = -1)
     {
+        if (seed >= 0)
+            Random.InitState(seed);
+
         _width  = def.Width;
         _height = def.Height;
         _cells  = new CellData[_width, _height];

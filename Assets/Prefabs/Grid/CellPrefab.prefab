@@ -108,3 +108,5 @@ MonoBehaviour:
   blueSprite: {fileID: -2615874204119335, guid: 4ec0ad699939c024baaab1bf23d00049, type: 3}
   greenSprite: {fileID: -6099873399732076034, guid: 7077cd67d4042304a8035d6955b4d243, type: 3}
   yellowSprite: {fileID: -8425141836431729757, guid: 4fb3cc81ad94de541a97a3a4d9de3003, type: 3}
+  greySprite: {fileID: 1655921489673168708, guid: 9cc5361099cfc594b851c2959c5e4249, type: 3}
+  purpleSprite: {fileID: -2093324750932669864, guid: 7658d75172472bf42b99bab2384834ad, type: 3}
