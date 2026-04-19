@@ -69,6 +69,12 @@ public class CellView : MonoBehaviour
         else                      { _sr.color  = new Color(0.6f, 0f, 0.9f); }
     }
 
+    public void SetOverlayColor(Color color)
+    {
+        if (_overlaySr != null)
+            _overlaySr.color = color;
+    }
+
     public void SetHighlight(HighlightState state)
     {
         // TODO: yönsel ok ikonlarını ve parlama efektini buraya ekle (7.6.3)

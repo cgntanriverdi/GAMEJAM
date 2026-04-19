@@ -30,6 +30,7 @@ public class GridManager : MonoBehaviour
     private int _height;
     private CellData[,] _cells;
     private CellView[,] _views;  // visual bileşenler (CellView.cs ayrı implement edilecek)
+    private GridCoord _endCoord;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -107,9 +108,14 @@ public class GridManager : MonoBehaviour
         _views[startCoord.X, startCoord.Y].SetAsStart();
         _views[endCoord.X,   endCoord.Y  ].SetAsEnd();
 
-        // End hücresine bone overlay — hücrenin %70'i kadar
+        _endCoord = endCoord;
+
+        // End hücresine bone overlay — hücrenin %70'i kadar, başlangıçta kilitli (soluk)
         if (boneSprite != null)
+        {
             _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
+            _views[endCoord.X, endCoord.Y].SetOverlayColor(new Color(1f, 1f, 1f, 0.3f));
+        }
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
@@ -200,6 +206,16 @@ public class GridManager : MonoBehaviour
     {
         foreach (var view in _views)
             view.SetHighlight(HighlightState.None);
+    }
+
+    /// <summary>
+    /// End hücresinin kemik overlay'ini kilidi açık/kapalı olarak gösterir.
+    /// GameManager, RefreshEndCellLockState() içinden çağırır.
+    /// </summary>
+    public void SetEndCellLockVisual(bool isUnlocked)
+    {
+        var view = _views[_endCoord.X, _endCoord.Y];
+        view.SetOverlayColor(isUnlocked ? Color.white : new Color(1f, 1f, 1f, 0.3f));
     }
 
     /// <summary>GridCoord'u world-space pozisyona çevirir (PlayerToken için).</summary>

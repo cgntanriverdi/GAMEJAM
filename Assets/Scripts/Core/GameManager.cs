@@ -152,6 +152,7 @@ public class GameManager : MonoBehaviour
         }
 
         _gameState = GameState.Playing;
+        RefreshEndCellLockState();
         _levelTimerUI?.StartTimer();
         OnLevelStarted?.Invoke(_solution.Cells.Count);
     }
@@ -191,16 +192,16 @@ public class GameManager : MonoBehaviour
                 OnWin();
                 break;
 
-            // End cell'e erken ulaşıldı — hamle geçerli ama win yok; eksik renkler vurgulanır.
-            case MoveOutcome.EndReachedButIncomplete:
-                CommitMove(target, result.ProjectedCounts);
-                _counterPanel.TriggerIncompleteEndFeedback(_runState.CurrentColorCounts);
-                break;
-
             case MoveOutcome.InvalidColorOverflow:
                 // Hangi renk taştı: hedefi aşan ilk rengi bul
                 CellColor overflowColor = FindOverflowColor(result, target);
                 _counterPanel.TriggerOverflowFeedback(overflowColor);
+                OnInvalidMove(result.Outcome);
+                break;
+
+            case MoveOutcome.InvalidEndLocked:
+                // Kemik kilidi açık değil: hedefe doğru sekip geri dön
+                _playerToken?.BounceToward(_gridManager.GetWorldPosition(target));
                 OnInvalidMove(result.Outcome);
                 break;
 
@@ -237,6 +238,7 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(newCurrent));
+        RefreshEndCellLockState();
         OnUndoPerformed?.Invoke();
     }
 
@@ -251,7 +253,20 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(coord, _runState.SelectedPath);
         _counterPanel.Refresh(newCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(coord));
+        RefreshEndCellLockState();
         OnStepTaken?.Invoke(_runState.SelectedPath.Count);
+    }
+
+    /// <summary>
+    /// Her hamle ve undo sonrası end hücresinin kilidi açık mı kontrol eder ve görseli günceller.
+    /// Açık koşul: oyuncu end'e komşu VE tüm renk sayıları eşleşiyor.
+    /// </summary>
+    private void RefreshEndCellLockState()
+    {
+        if (_solution == null || _runState == null || _validator == null) return;
+        GridCoord current = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+        bool isUnlocked = _validator.IsEndUnlocked(current, _runState, _solution);
+        _gridManager.SetEndCellLockVisual(isUnlocked);
     }
 
     /// <summary>
