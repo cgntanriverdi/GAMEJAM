@@ -640,10 +640,16 @@ public sealed class StartupMenuUI : MonoBehaviour
         {
             case OverlayState.Intro:
             case OverlayState.Map:
+            {
                 _shouldBlockAutoStart = true;
                 SetGameplayVisible(false);
-                AudioManager.Instance?.PlayMainMenuMusic();
+                var menuClip = Resources.Load<AudioClip>("MenuMusic");
+                if (menuClip != null)
+                    AudioManager.Instance?.PlayMusicClip(menuClip);
+                else
+                    AudioManager.Instance?.PlayMainMenuMusic();
                 break;
+            }
 
             case OverlayState.Complete:
                 _shouldBlockAutoStart = true;
@@ -651,10 +657,17 @@ public sealed class StartupMenuUI : MonoBehaviour
                 break;
 
             case OverlayState.Hidden:
+            {
                 _shouldBlockAutoStart = false;
                 SetGameplayVisible(true);
-                AudioManager.Instance?.PlayGameplayMusic();
+                var gp1 = Resources.Load<AudioClip>("Gameplay1");
+                var gp2 = Resources.Load<AudioClip>("Gameplay2");
+                if (gp1 != null && gp2 != null)
+                    AudioManager.Instance?.StartGameplayLoop(gp1, gp2);
+                else
+                    AudioManager.Instance?.PlayGameplayMusic();
                 break;
+            }
         }
     }
 
