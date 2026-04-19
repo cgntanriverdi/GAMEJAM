@@ -637,6 +637,19 @@ public sealed class StartupMenuUI : MonoBehaviour
                     catImg.sprite = sprites[0];
                 }
             }
+            else if (captured == "Dog")
+            {
+                RectTransform dogImgRect = CreateRect(
+                    "DogImage", contentRect,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(130f, yPositions[i]), new Vector2(100f, 100f));
+                Image dogImg = dogImgRect.gameObject.AddComponent<Image>();
+                var sprites = Resources.LoadAll<Sprite>("dog_greenscreen-removebg-preview");
+                if (sprites != null && sprites.Length > 0)
+                {
+                    dogImg.sprite = sprites[0];
+                }
+            }
         }
 
         // Back butonu kartın tam altında: kart alt=-270, boşluk 16, back yarısı 27 → y=-313
