@@ -15,6 +15,16 @@ public class ColorCountEntry : MonoBehaviour
 
     private CellColor     _color;
     private RectTransform _rect;
+    private RectTransform _iconRect;
+    private RectTransform _countRect;
+    private Vector2 _baseEntrySize;
+    private Vector2 _baseIconSize;
+    private Vector2 _baseIconPosition;
+    private Vector2 _baseCountSize;
+    private Vector2 _baseCountPosition;
+    private float _baseFontSize;
+    private float _responsiveScale = 1f;
+    private bool _hasCapturedLayout;
 
     private static readonly UnityEngine.Color NormalTextColor = UnityEngine.Color.white;
     private static readonly UnityEngine.Color OverflowTextColor = new UnityEngine.Color(1f, 0.22f, 0.22f);
@@ -25,7 +35,8 @@ public class ColorCountEntry : MonoBehaviour
     public void Initialize(CellColor color, Sprite cellSprite = null)
     {
         _color = color;
-        _rect  = GetComponent<RectTransform>();
+        CacheLayoutReferences();
+        CaptureLayoutIfNeeded();
         if (cellSprite != null)
         {
             _colorIcon.sprite = cellSprite;
@@ -36,7 +47,33 @@ public class ColorCountEntry : MonoBehaviour
             _colorIcon.color = ColorForCell(color);
         }
         if (_checkmark) _checkmark.SetActive(false);
+        ApplyResponsiveScale(_responsiveScale);
         SetCount(0, 1);
+    }
+
+    public void ApplyResponsiveScale(float scale)
+    {
+        CacheLayoutReferences();
+        CaptureLayoutIfNeeded();
+
+        _responsiveScale = Mathf.Clamp(scale, 1f, 1.9f);
+        if (_rect != null)
+            _rect.sizeDelta = _baseEntrySize * _responsiveScale;
+
+        if (_iconRect != null)
+        {
+            _iconRect.sizeDelta = _baseIconSize * _responsiveScale;
+            _iconRect.anchoredPosition = _baseIconPosition * _responsiveScale;
+        }
+
+        if (_countRect != null)
+        {
+            _countRect.sizeDelta = _baseCountSize * _responsiveScale;
+            _countRect.anchoredPosition = _baseCountPosition * _responsiveScale;
+        }
+
+        if (_countText != null)
+            _countText.fontSize = Mathf.Clamp(_baseFontSize * _responsiveScale, _baseFontSize, _baseFontSize * 1.85f);
     }
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -72,7 +109,7 @@ public class ColorCountEntry : MonoBehaviour
         Vector2 origin    = _rect.anchoredPosition;
         float   elapsed   = 0f;
         float   duration  = 0.35f;
-        float   magnitude = 8f;
+        float   magnitude = 8f * Mathf.Lerp(1f, _responsiveScale, 0.65f);
         float   speed     = 40f;
 
         _colorIcon.color = OverflowTextColor;
@@ -92,6 +129,31 @@ public class ColorCountEntry : MonoBehaviour
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public CellColor EntryColor => _color;
+
+    private void CacheLayoutReferences()
+    {
+        _rect ??= GetComponent<RectTransform>();
+        _iconRect ??= _colorIcon != null ? _colorIcon.rectTransform : null;
+        _countRect ??= _countText != null ? _countText.rectTransform : null;
+    }
+
+    private void CaptureLayoutIfNeeded()
+    {
+        if (_hasCapturedLayout)
+            return;
+
+        CacheLayoutReferences();
+        if (_rect == null || _iconRect == null || _countRect == null || _countText == null)
+            return;
+
+        _baseEntrySize = _rect.sizeDelta;
+        _baseIconSize = _iconRect.sizeDelta;
+        _baseIconPosition = _iconRect.anchoredPosition;
+        _baseCountSize = _countRect.sizeDelta;
+        _baseCountPosition = _countRect.anchoredPosition;
+        _baseFontSize = _countText.fontSize;
+        _hasCapturedLayout = true;
+    }
 
     private static UnityEngine.Color ColorForCell(CellColor c) => c switch
     {
