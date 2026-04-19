@@ -109,8 +109,9 @@ public class HintManager : MonoBehaviour
         int solutionIdx = solution.Cells.IndexOf(currentPos);
         if (solutionIdx < 0) solutionIdx = 0;
 
-        // Kalan yolun (currentPos sonrası) tam ortası
-        int remaining = solution.Cells.Count - 1 - solutionIdx;
+        // Kalan yolun (currentPos sonrası, end cell hariç) tam ortası
+        int lastPlayable = solution.Cells.Count - 2; // end cell (kemik) hariç
+        int remaining = lastPlayable - solutionIdx;
         if (remaining <= 0)
         {
             GameManager.Instance.SetPlayerInputEnabled(true);
@@ -120,7 +121,7 @@ public class HintManager : MonoBehaviour
 
         int midIdx = Mathf.Clamp(solutionIdx + 1 + remaining / 2,
                                   solutionIdx + 1,
-                                  solution.Cells.Count - 1);
+                                  lastPlayable);
         _lastIndicatorCoord = solution.Cells[midIdx];
 
         GameManager.Instance.SetPlayerInputEnabled(true);
