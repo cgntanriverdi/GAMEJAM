@@ -100,11 +100,10 @@ public class CellView : MonoBehaviour
             float spriteW     = sprite.rect.width  / ppu;
             float spriteH     = sprite.rect.height / ppu;
             float parentScale = transform.lossyScale.x;
-            // Hücreyi tam kaplayacak en büyük scale'i seç
-            float scaleX      = parentScale > 0f ? (worldSize / spriteW) / parentScale : 1f;
-            float scaleY      = parentScale > 0f ? (worldSize / spriteH) / parentScale : 1f;
-            float targetLocal = Mathf.Max(scaleX, scaleY);
-            _prisonOverlaySr.transform.localScale = new Vector3(targetLocal, targetLocal, 1f);
+            // X ve Y'yi bağımsız scale et: hücreyle birebir aynı kare boyut
+            float scaleX = parentScale > 0f ? (worldSize / spriteW) / parentScale : 1f;
+            float scaleY = parentScale > 0f ? (worldSize / spriteH) / parentScale : 1f;
+            _prisonOverlaySr.transform.localScale = new Vector3(scaleX, scaleY, 1f);
         }
     }
 
