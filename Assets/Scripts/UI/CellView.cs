@@ -15,6 +15,7 @@ public class CellView : MonoBehaviour
 
     private SpriteRenderer _sr;
     private SpriteRenderer _overlaySr;
+    private SpriteRenderer _prisonOverlaySr;
     private CellData _data;
 
     public void Initialize(CellData data)
@@ -58,8 +59,8 @@ public class CellView : MonoBehaviour
     public void SetAsStart()
     {
         if (_sr == null) _sr = GetComponent<SpriteRenderer>();
-        if (greySprite != null) { _sr.sprite = greySprite; _sr.color = Color.white; }
-        else                    { _sr.color  = Color.gray; }
+        if (purpleSprite != null) { _sr.sprite = purpleSprite; _sr.color = Color.white; }
+        else                      { _sr.color  = new Color(0.6f, 0f, 0.9f); }
     }
 
     public void SetAsEnd()
@@ -67,6 +68,56 @@ public class CellView : MonoBehaviour
         if (_sr == null) _sr = GetComponent<SpriteRenderer>();
         if (purpleSprite != null) { _sr.sprite = purpleSprite; _sr.color = Color.white; }
         else                      { _sr.color  = new Color(0.6f, 0f, 0.9f); }
+    }
+
+    /// <summary>End hücresinin arka planını gizler; sadece overlay'ler görünür kalır.</summary>
+    public void ClearBackground()
+    {
+        if (_sr == null) _sr = GetComponent<SpriteRenderer>();
+        _sr.sprite = null;
+        _sr.color  = Color.clear;
+    }
+
+    /// <summary>
+    /// End hücresinin üstüne kafes görselini yerleştirir (sortingOrder +2).
+    /// Hücreyi tam kaplayacak şekilde ölçeklenir.
+    /// </summary>
+    public void ShowPrisonOverlay(Sprite sprite, float worldSize = 1f)
+    {
+        if (_prisonOverlaySr == null)
+        {
+            var child = new GameObject("PrisonOverlay");
+            child.transform.SetParent(transform, false);
+            _prisonOverlaySr = child.AddComponent<SpriteRenderer>();
+            _prisonOverlaySr.sortingLayerName = _sr.sortingLayerName;
+            _prisonOverlaySr.sortingOrder     = _sr.sortingOrder + 2;
+        }
+        _prisonOverlaySr.sprite = sprite;
+
+        if (sprite != null && worldSize > 0f)
+        {
+            float ppu         = sprite.pixelsPerUnit;
+            float spriteW     = sprite.rect.width  / ppu;
+            float spriteH     = sprite.rect.height / ppu;
+            float parentScale = transform.lossyScale.x;
+            // Hücreyi tam kaplayacak en büyük scale'i seç
+            float scaleX      = parentScale > 0f ? (worldSize / spriteW) / parentScale : 1f;
+            float scaleY      = parentScale > 0f ? (worldSize / spriteH) / parentScale : 1f;
+            float targetLocal = Mathf.Max(scaleX, scaleY);
+            _prisonOverlaySr.transform.localScale = new Vector3(targetLocal, targetLocal, 1f);
+        }
+    }
+
+    public void SetPrisonOverlayVisible(bool visible)
+    {
+        if (_prisonOverlaySr != null)
+            _prisonOverlaySr.color = visible ? Color.white : Color.clear;
+    }
+
+    public void SetOverlayColor(Color color)
+    {
+        if (_overlaySr != null)
+            _overlaySr.color = color;
     }
 
     public void SetHighlight(HighlightState state)

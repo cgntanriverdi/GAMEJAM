@@ -25,17 +25,22 @@ public class GridManager : MonoBehaviour
 
     [Header("End sprite")]
     [SerializeField] private Sprite boneSprite;
+    [SerializeField] private Sprite prisonSprite;
 
     private int _width;
     private int _height;
     private CellData[,] _cells;
     private CellView[,] _views;  // visual bileşenler (CellView.cs ayrı implement edilecek)
+    private GridCoord _endCoord;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>LevelDefinition'a göre grid'i sıfırdan oluşturur.</summary>
-    public void Initialize(LevelDefinition def)
+    public void Initialize(LevelDefinition def, int seed = -1)
     {
+        if (seed >= 0)
+            Random.InitState(seed);
+
         _width  = def.Width;
         _height = def.Height;
         _cells  = new CellData[_width, _height];
@@ -100,13 +105,18 @@ public class GridManager : MonoBehaviour
             _views[kvp.Key.X, kvp.Key.Y].SetColor(kvp.Value);
         }
 
-        // Start hücresini gri, end hücresini mor göster
+        // Start hücresini purple göster; end hücresinin arka planını temizle (sadece kemik kalır)
         _views[startCoord.X, startCoord.Y].SetAsStart();
-        _views[endCoord.X,   endCoord.Y  ].SetAsEnd();
+        _views[endCoord.X,   endCoord.Y  ].ClearBackground();
 
-        // End hücresine bone overlay — hücrenin %70'i kadar
+        _endCoord = endCoord;
+
+        // End hücresine katman sırası: kemik (ortada) → kafes (en üstte, başlangıçta görünür)
         if (boneSprite != null)
             _views[endCoord.X, endCoord.Y].ShowOverlay(boneSprite, cellSize * 0.7f);
+
+        if (prisonSprite != null)
+            _views[endCoord.X, endCoord.Y].ShowPrisonOverlay(prisonSprite, cellSize);
     }
 
     /// <summary>Koordinata göre CellData döner; geçersiz koordinat için null.</summary>
@@ -197,6 +207,17 @@ public class GridManager : MonoBehaviour
     {
         foreach (var view in _views)
             view.SetHighlight(HighlightState.None);
+    }
+
+    /// <summary>
+    /// End hücresinin kemik overlay'ini kilidi açık/kapalı olarak gösterir.
+    /// GameManager, RefreshEndCellLockState() içinden çağırır.
+    /// </summary>
+    public void SetEndCellLockVisual(bool isUnlocked)
+    {
+        var view = _views[_endCoord.X, _endCoord.Y];
+        view.SetOverlayColor(Color.white);           // kemik her zaman tam opasite
+        view.SetPrisonOverlayVisible(!isUnlocked);   // kafes kilitliyse görünür, açıksa gizli
     }
 
     /// <summary>GridCoord'u world-space pozisyona çevirir (PlayerToken için).</summary>

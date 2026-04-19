@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Tek kayıt noktası: tüm PlayerPrefs okuma/yazma işlemleri buradan geçer.
-/// Plan §7.12 — current level, total cleared, hint count, audio on/off.
+/// Tek kayıt noktası: PlayerPrefs üstündeki kalıcı ayarlar burada tutulur.
+/// Session map ilerlemesi burada saklanmaz; yalnızca hint ve audio gibi kalıcı veriler kalır.
 ///
 /// DefaultExecutionOrder(-10): LevelManager(0) ve GameManager(10) Start'larından
 /// önce hem Awake hem Start tamamlanır; CurrentLevel her zaman hazırdır.
@@ -40,28 +40,7 @@ public class ProgressionService : MonoBehaviour
 
     private void Start()
     {
-        // GameManager.Instance: tüm Awake'ler bittiği için güvenli
-        GameManager.Instance.OnLevelComplete += HandleLevelComplete;
-    }
-
-    private void OnDestroy()
-    {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnLevelComplete -= HandleLevelComplete;
-    }
-
-    // ── OnLevelComplete handler ───────────────────────────────────────────────
-
-    /// <summary>
-    /// Subscription sırası: ProgressionService(-10) → LevelManager(0).
-    /// CurrentLevel ve TotalCleared bu event'te artırılır; LevelManager
-    /// ardından CurrentLevel'ı okuyarak doğru level'ı yükler.
-    /// </summary>
-    private void HandleLevelComplete()
-    {
-        CurrentLevel++;
-        TotalCleared++;
-        Save();
+        // Session-only level map akışı kalıcı CurrentLevel ilerletmiyor.
     }
 
     // ── Hint API (HintManager tarafından kullanılır) ──────────────────────────
@@ -122,7 +101,6 @@ public class ProgressionService : MonoBehaviour
     }
 }
 
-// Kullanacak scriptler: LevelManager (CurrentLevel okur),
-//                       HintManager (TryUseHint, AddHint),
+// Kullanacak scriptler: HintManager (TryUseHint, AddHint),
 //                       AudioManager (AudioEnabled),
-//                       MainMenu UI (TotalCleared, HintCount gösterimi)
+//                       opsiyonel debug/UI akışları

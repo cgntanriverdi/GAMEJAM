@@ -10,7 +10,8 @@ public enum MoveOutcome
     InvalidNotNeighbor,  // hedef hücre mevcut pozisyona komşu değil
     InvalidAlreadyVisited, // hedef hücre seçili yolda zaten var
     InvalidColorOverflow,  // bu adım bir rengi hedefin üstüne çıkarıyor
-    EndReachedButIncomplete, // end'e gelindi ama renk sayıları tutmuyor
+    EndReachedButIncomplete, // end'e gelindi ama renk sayıları tutmuyor (artık kullanılmıyor)
+    InvalidEndLocked,    // end hücresine renk koşulu sağlanmadan ulaşılmaya çalışıldı
 }
 
 public readonly struct ValidationResult
@@ -76,8 +77,9 @@ public class RunValidator
         if (cell.IsEnd)
         {
             bool allMatch = CountsMatch(state.CurrentColorCounts, solution.TargetColorCounts);
-            var outcome   = allMatch ? MoveOutcome.Win : MoveOutcome.EndReachedButIncomplete;
-            return new ValidationResult(outcome, state.CurrentColorCounts);
+            if (allMatch)
+                return new ValidationResult(MoveOutcome.Win, state.CurrentColorCounts);
+            return new ValidationResult(MoveOutcome.InvalidEndLocked);
         }
 
         var projected = ProjectCounts(state.CurrentColorCounts, cell.Color);
@@ -100,6 +102,19 @@ public class RunValidator
             return new ValidationResult(MoveOutcome.InvalidNotNeighbor);
 
         return new ValidationResult(MoveOutcome.Valid);
+    }
+
+    // ── End lock state ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// End hücresinin kilidi açık mı? Oyuncu komşuysa ve renk koşulu sağlandıysa true.
+    /// GridManager'ın görsel güncellemesi için GameManager tarafından çağrılır.
+    /// </summary>
+    public bool IsEndUnlocked(GridCoord current, PlayerRunState state, PathSolution solution)
+    {
+        GridCoord endCoord = solution.Cells[solution.Cells.Count - 1];
+        return IsNeighbor(current, endCoord) &&
+               CountsMatch(state.CurrentColorCounts, solution.TargetColorCounts);
     }
 
     // ── Win check (hareket olmaksızın anlık kontrol) ───────────────────────────

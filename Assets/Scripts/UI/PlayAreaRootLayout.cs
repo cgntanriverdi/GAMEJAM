@@ -4,12 +4,17 @@ using UnityEngine;
 [RequireComponent(typeof(RectTransform))]
 public sealed class PlayAreaRootLayout : MonoBehaviour
 {
-    [SerializeField] private float _playAreaAspect = 1536f / 2752f;
+    [SerializeField] private Vector2 _safeAreaPadding = Vector2.zero;
 
     private RectTransform _rectTransform;
     private RectTransform _parentRectTransform;
 
     private void OnEnable()
+    {
+        ApplyLayout();
+    }
+
+    private void LateUpdate()
     {
         ApplyLayout();
     }
@@ -38,17 +43,19 @@ public sealed class PlayAreaRootLayout : MonoBehaviour
         if (safeArea.width <= 0f || safeArea.height <= 0f)
             return;
 
-        float safeAspect = safeArea.width / safeArea.height;
-        float targetHeight = safeAspect > _playAreaAspect
-            ? safeArea.height
-            : safeArea.width / _playAreaAspect;
-        float targetWidth = targetHeight * _playAreaAspect;
+        safeArea.xMin += _safeAreaPadding.x;
+        safeArea.xMax -= _safeAreaPadding.x;
+        safeArea.yMin += _safeAreaPadding.y;
+        safeArea.yMax -= _safeAreaPadding.y;
+
+        if (safeArea.width <= 0f || safeArea.height <= 0f)
+            return;
 
         _rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         _rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         _rectTransform.pivot = new Vector2(0.5f, 0.5f);
         _rectTransform.anchoredPosition = safeArea.center;
-        _rectTransform.sizeDelta = new Vector2(targetWidth, targetHeight);
+        _rectTransform.sizeDelta = safeArea.size;
     }
 
     private bool TryCacheTransforms()

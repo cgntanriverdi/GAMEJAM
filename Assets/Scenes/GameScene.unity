@@ -146,12 +146,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c4d07056ba9dd649ab672fc402fbfc8, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   cellPrefab: {fileID: 4999680741917325135, guid: ec7221eeafec9fa4c929c53698d9bb73, type: 3}
   gridWorldSize: 12
   spacingRatio: 0.05
   boneSprite: {fileID: 4010562923862242353, guid: d4822ddebada33a4c9001fb2b273de1e, type: 3}
+  prisonSprite: {fileID: 3821947650123456789, guid: c9e1f2a3b4d5e6f708192a3b4c5d6e7f, type: 3}
 --- !u!4 &48348256
 Transform:
   m_ObjectHideFlags: 0
@@ -195,7 +196,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9d6087b8d2b3074aa8c23737adb250a, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerToken
   moveDuration: 0.2
 --- !u!212 &218037810
@@ -406,7 +407,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -52, y: -46}
+  m_AnchoredPosition: {x: -52, y: -72}
   m_SizeDelta: {x: 68, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &464700522
@@ -1071,7 +1072,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ""
+  m_text: MAP
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1098,8 +1099,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40
-  m_fontSizeBase: 40
+  m_fontSize: 22
+  m_fontSizeBase: 22
   m_fontWeight: 700
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1775,7 +1776,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 52, y: -46}
+  m_AnchoredPosition: {x: 52, y: -72}
   m_SizeDelta: {x: 68, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1197676696
@@ -2538,7 +2539,6 @@ RectTransform:
   - {fileID: 2142526661}
   - {fileID: 967294464}
   - {fileID: 855838928}
-  - {fileID: 1935391603}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2558,13 +2558,14 @@ GameObject:
   - component: {fileID: 1935391606}
   - component: {fileID: 1935391605}
   - component: {fileID: 1935391604}
+  - component: {fileID: 1935391607}
   m_Layer: 5
-  m_Name: UIButton
+  m_Name: LevelMapButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1935391603
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2578,12 +2579,12 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 649014675}
-  m_Father: {fileID: 1772135619}
+  m_Father: {fileID: 2142526646}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 42, y: -24}
+  m_SizeDelta: {x: 76, y: 36}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1935391604
 MonoBehaviour:
@@ -2628,19 +2629,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1935391605}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11500000, guid: 93f2147443a2e3940bc96307d8f38666, type: 3}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1935391605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2654,7 +2643,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.16078432, g: 0.23921569, b: 0.62352943, a: 0.96}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2679,6 +2668,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1935391602}
   m_CullTransparentMesh: 1
+--- !u!114 &1935391607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935391602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78439d7468d6419eba1434222862a37c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LevelMapButton
 --- !u!1 &2107573864
 GameObject:
   m_ObjectHideFlags: 0
@@ -2768,7 +2769,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -24}
+  m_AnchoredPosition: {x: 0, y: -38}
   m_SizeDelta: {x: 180, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1734209002
@@ -2929,6 +2930,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2142526646}
+  - component: {fileID: 2142526647}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -2949,6 +2951,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2142526651}
+  - {fileID: 1935391603}
   - {fileID: 1734209001}
   - {fileID: 1697836061}
   - {fileID: 550258579}
@@ -2961,6 +2964,22 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 176}
   m_Pivot: {x: 0.5, y: 1}
+--- !u!114 &2142526647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2142526645}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7df8d530999415b93dfefe00647bae1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::HeaderResponsiveLayout
+  _referencePlayAreaSize: {x: 404, y: 724}
+  _referenceHeaderHeight: 176
+  _minScale: 0.9
+  _maxScale: 1.35
 --- !u!114 &2142526654
 MonoBehaviour:
   m_ObjectHideFlags: 0

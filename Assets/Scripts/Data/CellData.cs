@@ -42,6 +42,32 @@ public sealed class PathSolution
     public Dictionary<GridCoord, CellColor> PathColors;   // hücre → renk (path'ten türetilir)
 }
 
+public readonly struct LevelCompletionResult
+{
+    public LevelCompletionResult(
+        int levelIndex,
+        float elapsedSeconds,
+        int starsEarned,
+        int bestStars,
+        float bestTimeSeconds,
+        bool isNewBest)
+    {
+        LevelIndex = levelIndex;
+        ElapsedSeconds = elapsedSeconds;
+        StarsEarned = starsEarned;
+        BestStars = bestStars;
+        BestTimeSeconds = bestTimeSeconds;
+        IsNewBest = isNewBest;
+    }
+
+    public int LevelIndex { get; }
+    public float ElapsedSeconds { get; }
+    public int StarsEarned { get; }
+    public int BestStars { get; }
+    public float BestTimeSeconds { get; }
+    public bool IsNewBest { get; }
+}
+
 // ── Runtime state ─────────────────────────────────────────────────────────────
 
 public sealed class PlayerRunState

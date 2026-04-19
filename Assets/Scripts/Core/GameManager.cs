@@ -48,6 +48,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Win koşulu sağlandığında.</summary>
     public event Action OnLevelComplete;
 
+    /// <summary>Win anında level sonucu hazır olduğunda.</summary>
+    public event Action<LevelCompletionResult> OnLevelResultReady;
+
     /// <summary>Geçersiz hamle denendiğinde: arg = red sebebi.</summary>
     public event Action<MoveOutcome> OnMoveFailed;
 
@@ -84,18 +87,26 @@ public class GameManager : MonoBehaviour
     /// Grid'i sıfırlar, path üretir, tüm sistemi level'a hazırlar.
     /// curatedFallback: PathGenerator başarısız olursa LevelManager'ın sağladığı yedek.
     /// </summary>
-    public void StartLevel(LevelDefinition def, PathSolution curatedFallback = null)
+    public void StartLevel(
+        LevelDefinition def,
+        PathSolution sessionSolution = null,
+        int gridSeed = -1,
+        PathSolution curatedFallback = null)
     {
         _currentDef = def;
         _gameState  = GameState.Idle;
         _levelTimerUI?.ResetDisplay();
 
         // 1. Grid oluştur
-        _gridManager.Initialize(def);
+        _gridManager.Initialize(def, gridSeed);
 
-        // 2. Gizli path üret; başarısız olursa curated fallback'e düş
-        var generator = new PathGenerator();
-        _solution = generator.Generate(def) ?? curatedFallback;
+        // 2. Session çözümü varsa doğrudan kullan; yoksa runtime'da üret.
+        _solution = sessionSolution;
+        if (_solution == null)
+        {
+            var generator = new PathGenerator();
+            _solution = generator.Generate(def) ?? curatedFallback;
+        }
 
         if (_solution == null)
         {
@@ -141,6 +152,7 @@ public class GameManager : MonoBehaviour
         }
 
         _gameState = GameState.Playing;
+        RefreshEndCellLockState();
         _levelTimerUI?.StartTimer();
         OnLevelStarted?.Invoke(_solution.Cells.Count);
     }
@@ -180,18 +192,23 @@ public class GameManager : MonoBehaviour
                 OnWin();
                 break;
 
-            // End cell'e erken ulaşıldı — hamle geçerli ama win yok; eksik renkler vurgulanır.
-            case MoveOutcome.EndReachedButIncomplete:
-                CommitMove(target, result.ProjectedCounts);
-                _counterPanel.TriggerIncompleteEndFeedback(_runState.CurrentColorCounts);
-                break;
-
             case MoveOutcome.InvalidColorOverflow:
                 // Hangi renk taştı: hedefi aşan ilk rengi bul
                 CellColor overflowColor = FindOverflowColor(result, target);
                 _counterPanel.TriggerOverflowFeedback(overflowColor);
                 OnInvalidMove(result.Outcome);
                 break;
+
+            case MoveOutcome.InvalidEndLocked:
+            {
+                // Kemik kilidi açık değil: oyuncunun gerçek hücresinden hedefe sekip geri dön
+                GridCoord cur = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+                _playerToken?.BounceToward(
+                    _gridManager.GetWorldPosition(cur),
+                    _gridManager.GetWorldPosition(target));
+                OnInvalidMove(result.Outcome);
+                break;
+            }
 
             case MoveOutcome.InvalidNotNeighbor:
             case MoveOutcome.InvalidAlreadyVisited:
@@ -226,6 +243,7 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(newCurrent));
+        RefreshEndCellLockState();
         OnUndoPerformed?.Invoke();
     }
 
@@ -240,7 +258,20 @@ public class GameManager : MonoBehaviour
         _gridManager.RefreshDirectionalHighlights(coord, _runState.SelectedPath);
         _counterPanel.Refresh(newCounts);
         _playerToken?.MoveTo(_gridManager.GetWorldPosition(coord));
+        RefreshEndCellLockState();
         OnStepTaken?.Invoke(_runState.SelectedPath.Count);
+    }
+
+    /// <summary>
+    /// Her hamle ve undo sonrası end hücresinin kilidi açık mı kontrol eder ve görseli günceller.
+    /// Açık koşul: oyuncu end'e komşu VE tüm renk sayıları eşleşiyor.
+    /// </summary>
+    private void RefreshEndCellLockState()
+    {
+        if (_solution == null || _runState == null || _validator == null) return;
+        GridCoord current = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+        bool isUnlocked = _validator.IsEndUnlocked(current, _runState, _solution);
+        _gridManager.SetEndCellLockVisual(isUnlocked);
     }
 
     /// <summary>
@@ -260,10 +291,14 @@ public class GameManager : MonoBehaviour
         _swipeInput.SetInputEnabled(false);
         _gridManager.ClearAllHighlights();
         _counterPanel.SetAllComplete();
-        _levelTimerUI?.StopTimer();
+        float elapsedSeconds = _levelTimerUI != null
+            ? _levelTimerUI.StopTimer()
+            : 0f;
 
+        LevelCompletionResult result = CreateCompletionResult(elapsedSeconds);
+
+        OnLevelResultReady?.Invoke(result);
         OnLevelComplete?.Invoke();
-        // TODO: LevelComplete ekranını aç (Plan §8 Saat 34-38)
         Debug.Log("[GameManager] ✓ WIN!");
     }
 
@@ -317,8 +352,42 @@ public class GameManager : MonoBehaviour
         AllowGeneratedLevel = true
     };
 
+    private LevelCompletionResult CreateCompletionResult(float elapsedSeconds)
+    {
+        int levelIndex = _currentDef != null ? _currentDef.LevelIndex : 0;
+
+        if (LevelManager.Instance != null)
+        {
+            int stars = LevelManager.Instance.CalculateStars(levelIndex, elapsedSeconds);
+            return LevelManager.Instance.RecordLevelResult(levelIndex, elapsedSeconds, stars);
+        }
+
+        int starsFallback = CalculateFallbackStars(elapsedSeconds);
+        return new LevelCompletionResult(levelIndex, elapsedSeconds, starsFallback, starsFallback, elapsedSeconds, true);
+    }
+
+    private int CalculateFallbackStars(float elapsedSeconds)
+    {
+        int moveCount = _solution != null && _solution.Cells != null
+            ? Mathf.Max(1, _solution.Cells.Count - 1)
+            : Mathf.Max(1, _minPathLength + 1);
+
+        float threeStarSeconds = Mathf.Max(12f, moveCount * 3.5f);
+        float twoStarSeconds = Mathf.Max(18f, moveCount * 5f);
+
+        if (elapsedSeconds <= threeStarSeconds) return 3;
+        if (elapsedSeconds <= twoStarSeconds)   return 2;
+        return 1;
+    }
+
     [ContextMenu("Restart Level")]
-    private void DebugRestartLevel() => StartLevel(BuildCurrentDef());
+    private void DebugRestartLevel()
+    {
+        if (LevelManager.Instance != null && LevelManager.Instance.ReloadActiveLevel())
+            return;
+
+        StartLevel(BuildCurrentDef());
+    }
 }
 
 // Kullanacak scriptler: SwipeInputController (TryMovePlayer çağrısı),
