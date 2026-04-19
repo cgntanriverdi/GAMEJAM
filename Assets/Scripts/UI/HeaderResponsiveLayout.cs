@@ -19,13 +19,7 @@ public sealed class HeaderResponsiveLayout : MonoBehaviour
     private RectTransform _hintButtonRect;
     private CounterPanelUI _counterPanel;
 
-    private Vector2 _mapButtonPosition;
-    private Vector2 _timerPosition;
-    private Vector2 _counterPanelPosition;
     private Vector2 _levelTextPosition;
-    private Vector2 _undoButtonPosition;
-    private Vector2 _hintButtonPosition;
-    private Vector2 _counterPanelSize;
     private bool _hasCapturedLayout;
 
     private void OnEnable()
@@ -65,15 +59,24 @@ public sealed class HeaderResponsiveLayout : MonoBehaviour
         float positionScale = Mathf.Lerp(1f, scale, 0.75f);
         float headerHeightScale = Mathf.Lerp(1f, scale, 0.92f);
         float iconScale = Mathf.Clamp(scale * 1.04f, 1f, 1.95f);
+        int targetRows = _counterPanel != null ? _counterPanel.PreferredRowCount : 1;
+        float baseHeaderHeight = targetRows > 1 ? 322f : 268f;
+        float minHeaderHeight = targetRows > 1 ? 290f : 244f;
+        float maxHeaderHeight = targetRows > 1 ? 430f : 360f;
+        float headerHeight = Mathf.Clamp(baseHeaderHeight * headerHeightScale, minHeaderHeight, maxHeaderHeight);
+        float sideControlX = Mathf.Clamp(parentSize.x * 0.12f, 42f, 74f * positionScale);
+        float mapY = -Mathf.Clamp(62f * positionScale, 52f, 86f);
+        float timerY = -Mathf.Clamp(54f * positionScale, 46f, 76f);
+        float hintY = -Mathf.Clamp(62f * positionScale, 52f, 86f);
 
-        _rectTransform.sizeDelta = new Vector2(_rectTransform.sizeDelta.x, _referenceHeaderHeight * headerHeightScale);
+        _rectTransform.sizeDelta = new Vector2(_rectTransform.sizeDelta.x, headerHeight);
 
-        ApplyChildScale(_mapButtonRect, _mapButtonPosition * positionScale, iconScale);
-        ApplyChildScale(_timerRect, _timerPosition * positionScale, iconScale);
-        ApplyCounterPanelLayout(scale, positionScale);
+        ApplyTopLeftChildScale(_mapButtonRect, new Vector2(sideControlX, mapY), iconScale);
+        ApplyCenteredTimerLayout(_timerRect, timerY, iconScale);
+        ApplyTopRightChildScale(_hintButtonRect, new Vector2(-sideControlX, hintY), iconScale);
+        ApplyCounterPanelLayout(scale, positionScale, parentSize.x, targetRows);
+        ApplyFloatingUndoLayout(_undoButtonRect, headerHeight, sideControlX, Mathf.Clamp(iconScale * 0.92f, 1f, 1.65f));
         ApplyChildScale(_levelTextRect, _levelTextPosition * positionScale, iconScale);
-        ApplyChildScale(_undoButtonRect, _undoButtonPosition * positionScale, iconScale);
-        ApplyChildScale(_hintButtonRect, _hintButtonPosition * positionScale, iconScale);
     }
 
     private bool TryCacheTransforms()
@@ -106,27 +109,30 @@ public sealed class HeaderResponsiveLayout : MonoBehaviour
         if (_hasCapturedLayout)
             return;
 
-        _mapButtonPosition = _mapButtonRect != null ? _mapButtonRect.anchoredPosition : Vector2.zero;
-        _timerPosition = _timerRect != null ? _timerRect.anchoredPosition : Vector2.zero;
-        _counterPanelPosition = _counterPanelRect != null ? _counterPanelRect.anchoredPosition : Vector2.zero;
-        _counterPanelSize = _counterPanelRect != null ? _counterPanelRect.sizeDelta : Vector2.zero;
         _levelTextPosition = _levelTextRect != null ? _levelTextRect.anchoredPosition : Vector2.zero;
-        _undoButtonPosition = _undoButtonRect != null ? _undoButtonRect.anchoredPosition : Vector2.zero;
-        _hintButtonPosition = _hintButtonRect != null ? _hintButtonRect.anchoredPosition : Vector2.zero;
         _hasCapturedLayout = true;
     }
 
-    private void ApplyCounterPanelLayout(float scale, float positionScale)
+    private void ApplyCounterPanelLayout(float scale, float positionScale, float parentWidth, int targetRows)
     {
         if (_counterPanelRect == null)
             return;
 
-        _counterPanelRect.anchoredPosition = _counterPanelPosition * positionScale;
+        float horizontalInset = Mathf.Clamp(parentWidth * 0.06f, 18f, 42f * positionScale);
+        float bottomPadding = Mathf.Clamp(18f * positionScale, 14f, 28f);
+        float rowHeight = targetRows > 1
+            ? Mathf.Clamp(168f * scale, 146f, 230f)
+            : Mathf.Clamp(122f * scale, 106f, 168f);
+
+        _counterPanelRect.anchorMin = new Vector2(0f, 0f);
+        _counterPanelRect.anchorMax = new Vector2(1f, 0f);
+        _counterPanelRect.pivot = new Vector2(0.5f, 0.5f);
+        _counterPanelRect.anchoredPosition = new Vector2(0f, bottomPadding + (rowHeight * 0.5f));
         _counterPanelRect.sizeDelta = new Vector2(
-            _counterPanelSize.x,
-            _counterPanelSize.y * Mathf.Lerp(1f, scale, 0.95f));
+            -(horizontalInset * 2f),
+            rowHeight);
         _counterPanelRect.localScale = Vector3.one;
-        _counterPanel?.ApplyResponsiveScale(Mathf.Lerp(1f, scale, 0.92f));
+        _counterPanel?.ApplyResponsiveScale(Mathf.Lerp(1f, scale, 0.92f) * 1.22f);
     }
 
     private static void ApplyChildScale(RectTransform rect, Vector2 anchoredPosition, float scale)
@@ -134,6 +140,51 @@ public sealed class HeaderResponsiveLayout : MonoBehaviour
         if (rect == null)
             return;
 
+        rect.anchoredPosition = anchoredPosition;
+        rect.localScale = new Vector3(scale, scale, 1f);
+    }
+
+    private static void ApplyCenteredTimerLayout(RectTransform rect, float anchoredY, float scale)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(0.5f, rect.anchorMin.y);
+        rect.anchorMax = new Vector2(0.5f, rect.anchorMax.y);
+        rect.pivot = new Vector2(0.5f, rect.pivot.y);
+        rect.anchoredPosition = new Vector2(0f, anchoredY);
+        rect.localScale = new Vector3(scale, scale, 1f);
+    }
+
+    private static void ApplyTopLeftChildScale(RectTransform rect, Vector2 anchoredPosition, float scale)
+    {
+        ApplyAnchoredChildScale(rect, Vector2.up, Vector2.up, new Vector2(0.5f, 0.5f), anchoredPosition, scale);
+    }
+
+    private static void ApplyTopRightChildScale(RectTransform rect, Vector2 anchoredPosition, float scale)
+    {
+        ApplyAnchoredChildScale(rect, Vector2.one, Vector2.one, new Vector2(0.5f, 0.5f), anchoredPosition, scale);
+    }
+
+    private static void ApplyFloatingUndoLayout(RectTransform rect, float headerHeight, float anchoredX, float scale)
+    {
+        if (rect == null)
+            return;
+
+        float baseHeight = rect.rect.height > 0f ? rect.rect.height : Mathf.Max(68f, rect.sizeDelta.y);
+        float gap = Mathf.Clamp(22f * scale, 18f, 34f);
+        float anchoredY = -(headerHeight + gap + (baseHeight * scale * 0.5f));
+        ApplyAnchoredChildScale(rect, Vector2.up, Vector2.up, new Vector2(0.5f, 0.5f), new Vector2(anchoredX, anchoredY), scale);
+    }
+
+    private static void ApplyAnchoredChildScale(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, float scale)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = pivot;
         rect.anchoredPosition = anchoredPosition;
         rect.localScale = new Vector3(scale, scale, 1f);
     }
