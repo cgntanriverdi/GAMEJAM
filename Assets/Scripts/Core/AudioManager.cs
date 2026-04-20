@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 /// <summary>
@@ -39,6 +40,43 @@ public class AudioManager : MonoBehaviour
 
     [Header("Crossfade")]
     [SerializeField] private float _crossfadeDuration = 1f;
+
+    // ── WebGL AudioContext unlock ─────────────────────────────────────────────
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void ResumeWebAudioContext();
+#endif
+
+    private bool _webAudioUnlocked;
+
+    private void Update()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (_webAudioUnlocked) return;
+        if (Input.anyKeyDown || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
+            UnlockWebAudio();
+#endif
+    }
+
+    private void OnMouseDown()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        UnlockWebAudio();
+#endif
+    }
+
+    private void UnlockWebAudio()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (_webAudioUnlocked) return;
+        _webAudioUnlocked = true;
+        ResumeWebAudioContext();
+        // AudioListener'ı kısa kapat-aç yaparak Unity'nin iç buffer'ını tetikle
+        AudioListener.volume = 0f;
+        AudioListener.volume = 1f;
+#endif
+    }
 
     // ── Runtime ───────────────────────────────────────────────────────────────
 
