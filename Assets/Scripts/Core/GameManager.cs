@@ -239,12 +239,17 @@ public class GameManager : MonoBehaviour
 
         // Son hücreyi çıkar
         int lastIdx = _runState.SelectedPath.Count - 1;
+        GridCoord removedCoord = _runState.SelectedPath[lastIdx];
         _runState.SelectedPath.RemoveAt(lastIdx);
 
         // Tüm path'i yeniden say — undo sonrası tek güvenli yöntem
         _runState.CurrentColorCounts = RecomputeCountsFromPath();
 
         GridCoord newCurrent = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+
+        // Kaldırılan hücreyi ve yeni mevcut hücreyi (grey'den) orijinal rengine döndür
+        _gridManager.RestoreCellColor(removedCoord);
+        _gridManager.RestoreCellColor(newCurrent);
         _swipeInput.SetPlayerPosition(newCurrent);
         _gridManager.RefreshDirectionalHighlights(newCurrent, _runState.SelectedPath);
         _counterPanel.Refresh(_runState.CurrentColorCounts);
@@ -257,6 +262,12 @@ public class GameManager : MonoBehaviour
 
     private void CommitMove(GridCoord coord, Dictionary<CellColor, int> newCounts)
     {
+        // Terk edilen hücreyi grey yap (start hücresi hariç)
+        GridCoord prevCoord = _runState.SelectedPath[_runState.SelectedPath.Count - 1];
+        CellData prevCell = _gridManager.GetCell(prevCoord);
+        if (prevCell != null && !prevCell.IsStart)
+            _gridManager.MarkCellAsVisited(prevCoord);
+
         _runState.SelectedPath.Add(coord);
         _runState.CurrentColorCounts = newCounts;
 

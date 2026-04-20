@@ -221,6 +221,24 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>Oyuncunun üzerinden geçtiği hücreyi grey sprite ile işaretler.</summary>
+    public void MarkCellAsVisited(GridCoord coord)
+    {
+        if (!IsInBounds(coord)) return;
+        _views[coord.X, coord.Y].SetAsVisited();
+    }
+
+    /// <summary>Undo sonrası hücreyi orijinal rengine geri döndürür.</summary>
+    public void RestoreCellColor(GridCoord coord)
+    {
+        if (!IsInBounds(coord)) return;
+        CellData cell = _cells[coord.X, coord.Y];
+        if (cell.IsStart)
+            _views[coord.X, coord.Y].SetAsStart();
+        else
+            _views[coord.X, coord.Y].SetColor(cell.Color);
+    }
+
     /// <summary>Tüm highlight'ları sıfırlar (level reset veya hint sonrası).</summary>
     public void ClearAllHighlights()
     {
