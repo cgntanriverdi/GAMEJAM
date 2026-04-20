@@ -324,12 +324,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("[GameManager] ✓ WIN!");
     }
 
-    private static void TriggerVibration()
-    {
-#if UNITY_ANDROID || UNITY_IOS
-        Handheld.Vibrate();
-#endif
-    }
+    private static void TriggerVibration() => Vibration.Medium();
 
     private void OnInvalidMove(MoveOutcome reason)
     {
