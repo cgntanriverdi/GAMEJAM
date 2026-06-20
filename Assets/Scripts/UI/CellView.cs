@@ -14,6 +14,9 @@ public class CellView : MonoBehaviour
     [SerializeField] private Sprite greySprite;
     [SerializeField] private Sprite purpleSprite;
 
+    [Header("Visited (üzerinden geçilen hücre)")]
+    [SerializeField, Range(0f, 1f)] private float visitedGreyBlend = 0.55f;
+
     private SpriteRenderer _sr;
     private SpriteRenderer _overlaySr;
     private SpriteRenderer _prisonOverlaySr;
@@ -77,8 +80,9 @@ public class CellView : MonoBehaviour
     public void SetAsVisited()
     {
         if (_sr == null) _sr = GetComponent<SpriteRenderer>();
-        if (greySprite != null) { _sr.sprite = greySprite; _sr.color = Color.white; }
-        else                    { _sr.color  = Color.gray; }
+        if (_data != null) _sr.sprite = SpriteForCell(_data.Color);
+        // Orijinal rengi koyu gri ile karıştır — saydamlaştırmadan soluklaştırır.
+        _sr.color = Color.Lerp(Color.white, new Color(0.25f, 0.25f, 0.25f), visitedGreyBlend);
     }
 
     /// <summary>End hücresinin arka planını gizler; sadece overlay'ler görünür kalır.</summary>

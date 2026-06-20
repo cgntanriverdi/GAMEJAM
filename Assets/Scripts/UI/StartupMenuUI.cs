@@ -61,7 +61,10 @@ public sealed class StartupMenuUI : MonoBehaviour
     private RectTransform _introContentRect;
     private RectTransform _characterContentRect;
     private RectTransform _mapCardRect;
-    private RectTransform _mapRouteRect;
+    private RectTransform _mapRouteWindowRect;   // görünür pencere (ScrollRect burada)
+    private RectTransform _mapRouteViewportRect; // mask + drag yakalayıcı
+    private RectTransform _mapRouteRect;         // kaydırılan içerik (node'lar burada)
+    private UnityEngine.UI.ScrollRect _mapRouteScroll;
     private RectTransform _completeCardRect;
     private RectTransform _completeContentRect;
     private RectTransform _completeTitleRect;
@@ -463,27 +466,76 @@ public sealed class StartupMenuUI : MonoBehaviour
         }
         mapCardImage.color = Color.white;
 
-        _mapRouteRect = CreateRect(
-            "Route",
+        // Görünür pencere — ScrollRect bunun üzerinde. Boyutu LayoutMapPanel ayarlar.
+        _mapRouteWindowRect = CreateRect(
+            "RouteScroll",
             _mapCardRect,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             new Vector2(0f, 24f),
             new Vector2(580f, 860f));
+
+        // Viewport — pencereyi doldurur, RectMask2D ile içeriği kırpar, drag yakalar.
+        _mapRouteViewportRect = CreateRect(
+            "RouteViewport",
+            _mapRouteWindowRect,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 1f),
+            Vector2.zero,
+            Vector2.zero);
+        StretchToParent(_mapRouteViewportRect);
+        Image viewportCatcher = _mapRouteViewportRect.gameObject.AddComponent<Image>();
+        viewportCatcher.color = new Color(1f, 1f, 1f, 0.001f); // görünmez ama raycast hedefi
+        viewportCatcher.raycastTarget = true;
+        _mapRouteViewportRect.gameObject.AddComponent<UnityEngine.UI.RectMask2D>();
+
+        // İçerik — node'lar buraya kurulur; yüksekliği level sayısına göre RebuildMapRoute belirler.
+        _mapRouteRect = CreateRect(
+            "RouteContent",
+            _mapRouteViewportRect,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(580f, 860f));
+
+        _mapRouteScroll = _mapRouteWindowRect.gameObject.AddComponent<UnityEngine.UI.ScrollRect>();
+        _mapRouteScroll.viewport = _mapRouteViewportRect;
+        _mapRouteScroll.content = _mapRouteRect;
+        _mapRouteScroll.horizontal = false;
+        _mapRouteScroll.vertical = true;
+        _mapRouteScroll.movementType = UnityEngine.UI.ScrollRect.MovementType.Elastic;
+        _mapRouteScroll.elasticity = 0.08f;
+        _mapRouteScroll.inertia = true;
+        _mapRouteScroll.decelerationRate = 0.135f;
+        _mapRouteScroll.scrollSensitivity = 28f;
     }
 
-    private void BuildMapRoute(RectTransform routeRect, Vector2 routeSize)
+    private void BuildMapRoute(RectTransform routeRect, Vector2 viewportSize)
     {
         int levelCount = LevelManager.Instance != null
             ? LevelManager.Instance.SessionLevelCount
             : 1;
 
-        float nodeSize = CalculateNodeSize(routeSize, levelCount);
+        // Node boyutu görünür pencerenin GENİŞLİĞİNE göre sabit (yüksekliğe sıkıştırılmaz).
+        float nodeSize = CalculateNodeSize(viewportSize, levelCount);
         float starSize = Mathf.Clamp(nodeSize * 0.46f, 32f, 52f);
         float starSpacing = Mathf.Clamp(nodeSize * 0.055f, 5f, 9f);
         float starOffset = Mathf.Clamp((nodeSize * 0.5f) + (starSize * 0.5f) + (nodeSize * 0.2f), 50f, 86f);
         float ribbonThickness = Mathf.Clamp(nodeSize * 0.18f, 16f, 28f);
-        Vector2[] positions = BuildNodePositions(levelCount, routeSize, nodeSize, starOffset, starSize);
+
+        // İçerik yüksekliği level sayısıyla büyür → kaydırılır.
+        float verticalStep = nodeSize * 1.85f;
+        float topMargin    = nodeSize * 1.0f;
+        float bottomMargin = starOffset + (starSize * 0.5f) + (nodeSize * 0.35f);
+        float contentHeight = Mathf.Max(
+            viewportSize.y,
+            topMargin + bottomMargin + Mathf.Max(0, levelCount - 1) * verticalStep);
+
+        Vector2 contentSize = new Vector2(viewportSize.x, contentHeight);
+        routeRect.sizeDelta = contentSize;
+        routeRect.anchoredPosition = Vector2.zero;
+
+        Vector2[] positions = BuildNodePositions(levelCount, contentSize, nodeSize, verticalStep, topMargin);
 
         for (int i = 1; i < positions.Length; i++)
             CreatePathRibbon(routeRect, positions[i - 1], positions[i], ribbonThickness);
@@ -921,7 +973,8 @@ public sealed class StartupMenuUI : MonoBehaviour
         if (state != OverlayState.Complete)
             StopCompletePanelIntro();
 
-        RefreshResponsiveLayout(forceRouteRebuild: state == OverlayState.Map);
+        // Map'i her açışta yeniden kurma; guard (boyut değişti / henüz kurulmadı) karar verir.
+        RefreshResponsiveLayout(forceRouteRebuild: false);
 
         bool overlayVisible = state != OverlayState.Hidden;
         if (_overlayRoot != null)
@@ -1212,7 +1265,10 @@ public sealed class StartupMenuUI : MonoBehaviour
         _introContentRect = null;
         _characterContentRect = null;
         _mapCardRect = null;
+        _mapRouteWindowRect = null;
+        _mapRouteViewportRect = null;
         _mapRouteRect = null;
+        _mapRouteScroll = null;
         _completeCardRect = null;
         _completeContentRect = null;
         _completeTitleRect = null;
@@ -1407,31 +1463,32 @@ public sealed class StartupMenuUI : MonoBehaviour
         CreateNodeLayer(ribbonRect, "CapEndInner", new Vector2(ribbonLength * 0.5f, 0f), new Vector2(thickness * 0.72f, thickness * 0.72f), GetCircleSprite(), new Color(1f, 0.76f, 0.87f, 1f));
     }
 
-    private static Vector2[] BuildNodePositions(int levelCount, Vector2 routeSize, float nodeSize, float starOffset, float starSize)
+    /// <summary>
+    /// Node'ları içerik (content) alanına yukarıdan aşağıya, sabit dikey adımla yerleştirir.
+    /// Level 1 en üstte; yatayda yumuşak zikzak. Konumlar content merkezine görelidir.
+    /// </summary>
+    private static Vector2[] BuildNodePositions(int levelCount, Vector2 contentSize, float nodeSize, float verticalStep, float topMargin)
     {
         var result = new Vector2[levelCount];
-        float horizontalLimit = Mathf.Max(0f, (routeSize.x * 0.5f) - (nodeSize * 0.72f));
-        float top = routeSize.y * 0.5f - (nodeSize * 0.62f);
-        float bottom = -routeSize.y * 0.5f + starOffset + (starSize * 0.5f) + (nodeSize * 0.2f);
-        float spacing = levelCount > 1 ? (top - bottom) / (levelCount - 1) : 0f;
+        float horizontalLimit = Mathf.Max(0f, (contentSize.x * 0.5f) - (nodeSize * 0.72f));
+        float top = contentSize.y * 0.5f - topMargin; // content merkezine göre üst nokta
 
         for (int i = 0; i < levelCount; i++)
         {
-            float progress = levelCount > 1 ? i / (float)(levelCount - 1) : 0.5f;
-            float wave = Mathf.Sin((progress * Mathf.PI * 2.8f) - (Mathf.PI * 0.55f));
-            float x = Mathf.Clamp(wave * routeSize.x * 0.37f, -horizontalLimit, horizontalLimit);
-            float y = top - (spacing * i);
+            float wave = Mathf.Sin(i * 0.62f);
+            float x = Mathf.Clamp(wave * contentSize.x * 0.34f, -horizontalLimit, horizontalLimit);
+            float y = top - (verticalStep * i);
             result[i] = new Vector2(x, y);
         }
 
         return result;
     }
 
-    private static float CalculateNodeSize(Vector2 routeSize, int levelCount)
+    private static float CalculateNodeSize(Vector2 viewportSize, int levelCount)
     {
-        float widthDriven = routeSize.x * 0.29f;
-        float heightDriven = routeSize.y / Mathf.Max(levelCount, 1) * 1.08f;
-        return Mathf.Clamp(Mathf.Min(widthDriven, heightDriven), 72f, 150f);
+        // Sadece genişliğe bağlı — kaydırma sayesinde yüksekliğe sıkıştırmaya gerek yok.
+        float widthDriven = viewportSize.x * 0.27f;
+        return Mathf.Clamp(widthDriven, 80f, 132f);
     }
 
     private void RefreshResponsiveLayoutIfNeeded()
@@ -1507,7 +1564,7 @@ public sealed class StartupMenuUI : MonoBehaviour
 
     private void LayoutMapPanel(Vector2 safeAreaSize, bool portrait, bool forceRouteRebuild)
     {
-        if (_mapCardRect == null || _mapRouteRect == null)
+        if (_mapCardRect == null || _mapRouteWindowRect == null || _mapRouteRect == null)
             return;
 
         float layoutScale = ComputeResponsiveScale(safeAreaSize, new Vector2(360f, 700f), 1f, 1.8f, 0.58f);
@@ -1520,22 +1577,30 @@ public sealed class StartupMenuUI : MonoBehaviour
         float sidePadding = Mathf.Clamp(cardWidth * (portrait ? 0.08f : 0.07f), 16f * layoutScale, 44f * layoutScale);
         float routeTopPadding = Mathf.Clamp(36f * layoutScale, 24f, 60f);
         float routeBottomPadding = Mathf.Clamp(42f * layoutScale, 28f, 72f);
-        _mapRouteRect.anchoredPosition = new Vector2(0f, (routeBottomPadding - routeTopPadding) * 0.5f);
-        _mapRouteRect.sizeDelta = new Vector2(
+
+        // Görünür kaydırma penceresini kart içine yerleştir.
+        _mapRouteWindowRect.anchoredPosition = new Vector2(0f, (routeBottomPadding - routeTopPadding) * 0.5f);
+        _mapRouteWindowRect.sizeDelta = new Vector2(
             Mathf.Max(240f, cardWidth - (sidePadding * 2f)),
             Mathf.Max(320f, cardHeight - routeTopPadding - routeBottomPadding));
 
         Canvas.ForceUpdateCanvases();
 
-        Vector2 routeSize = _mapRouteRect.rect.size;
-        if (routeSize.x <= 0f || routeSize.y <= 0f)
+        Vector2 viewportSize = _mapRouteViewportRect.rect.size;
+        if (viewportSize.x <= 0f || viewportSize.y <= 0f)
             return;
 
-        bool routeSizeChanged = (_lastRouteSize - routeSize).sqrMagnitude > 1f;
-        if (!forceRouteRebuild && !routeSizeChanged)
+        int expectedCount = LevelManager.Instance != null ? LevelManager.Instance.SessionLevelCount : 0;
+        bool routeSizeChanged = (_lastRouteSize - viewportSize).sqrMagnitude > 1f;
+        bool needBuild = forceRouteRebuild || routeSizeChanged || _levelButtons.Count != expectedCount;
+        if (!needBuild)
+        {
+            // Yeniden kurmaya gerek yok; sadece aktif level'a kaydır (ör. map'e geri dönüş).
+            ScrollToActiveLevel();
             return;
+        }
 
-        RebuildMapRoute(routeSize);
+        RebuildMapRoute(viewportSize);
     }
 
     private void LayoutCompletePanel(Vector2 safeAreaSize)
@@ -1620,7 +1685,7 @@ public sealed class StartupMenuUI : MonoBehaviour
         ApplyCompleteButtonLayout(_completeNextButtonRect, _completeNextButtonText, new Vector2(buttonWidth + buttonGap, buttonY), buttonWidth, buttonHeight, typographyScale);
     }
 
-    private void RebuildMapRoute(Vector2 routeSize)
+    private void RebuildMapRoute(Vector2 viewportSize)
     {
         if (_mapRouteRect == null)
             return;
@@ -1629,9 +1694,54 @@ public sealed class StartupMenuUI : MonoBehaviour
             Destroy(_mapRouteRect.GetChild(i).gameObject);
 
         _levelButtons.Clear();
-        _lastRouteSize = routeSize;
-        BuildMapRoute(_mapRouteRect, routeSize);
+        _lastRouteSize = viewportSize;
+        BuildMapRoute(_mapRouteRect, viewportSize);
         RefreshMapPanel();
+        ScrollToActiveLevel();
+    }
+
+    /// <summary>
+    /// İçeriği, oynanacak (aktif / en son açılmış) level görünür olacak şekilde kaydırır.
+    /// </summary>
+    private void ScrollToActiveLevel()
+    {
+        if (_mapRouteScroll == null || _mapRouteViewportRect == null || _mapRouteRect == null)
+            return;
+
+        int levelCount = _levelButtons.Count;
+        if (levelCount <= 0) return;
+
+        // Hedef level: aktif varsa o, yoksa en son açılmış (kilitsiz) level.
+        int target = 0;
+        if (LevelManager.Instance != null)
+        {
+            if (LevelManager.Instance.ActiveLevelIndex >= 0)
+                target = LevelManager.Instance.ActiveLevelIndex;
+            else
+                for (int i = 0; i < levelCount; i++)
+                    if (LevelManager.Instance.IsLevelUnlocked(i)) target = i;
+        }
+
+        Canvas.ForceUpdateCanvases();
+
+        float contentH  = _mapRouteRect.rect.height;
+        float viewportH = _mapRouteViewportRect.rect.height;
+        float scrollable = contentH - viewportH;
+        if (scrollable <= 1f)
+        {
+            _mapRouteScroll.verticalNormalizedPosition = 1f;
+            return;
+        }
+
+        // Node'un content üstünden uzaklığı → normalize edilmiş scroll konumu.
+        // BuildNodePositions ile aynı geometri: üstten verticalStep adımlarla.
+        float nodeSize     = CalculateNodeSize(_mapRouteViewportRect.rect.size, levelCount);
+        float verticalStep = nodeSize * 1.85f;
+        float topMargin    = nodeSize * 1.0f;
+        float distFromTop  = topMargin + target * verticalStep;          // content üstünden px
+        float desiredTop   = Mathf.Clamp(distFromTop - viewportH * 0.5f, 0f, scrollable);
+        // verticalNormalizedPosition: 1 = üst, 0 = alt
+        _mapRouteScroll.verticalNormalizedPosition = 1f - (desiredTop / scrollable);
     }
 
     private static Color GetNodeColor(int levelIndex)

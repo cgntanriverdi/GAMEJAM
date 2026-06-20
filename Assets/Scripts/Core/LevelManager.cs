@@ -38,7 +38,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private LevelDefinitionAsset[] _levelAssets;
 
     [Header("Session map")]
-    [SerializeField] [Min(1)] private int _sessionLevelCount = 10;
+    [SerializeField] [Min(1)] private int _sessionLevelCount = 100;
 
     private readonly List<SessionLevelState> _sessionLevels = new();
     private int _activeLevelIndex = -1;
@@ -214,26 +214,27 @@ public class LevelManager : MonoBehaviour
         };
 
     /// <summary>
-    /// Tier tablosu — min/max = RENK hücresi sayısı (start ve end HARİÇ).
-    /// Toplam path uzunluğu = min/max + 2.
-    ///   1-2  : 3×3, 1-2 renk hücresi,   2 renk
-    ///   3-4  : 4×4, 3-4 renk hücresi,   2 renk
-    ///   5-6  : 4×4, 5-7 renk hücresi,   3 renk
-    ///   7-8  : 5×5, 8-10 renk hücresi,  3 renk
-    ///   9-10 : 5×5, 11-13 renk hücresi, 4 renk
-    ///   11+  : 6×6, 14-18 renk hücresi, 4 renk
+    /// 100 bölümlük zorluk dağılımı — min/max = RENK hücresi sayısı (start ve end HARİÇ).
+    /// Toplam path uzunluğu = min/max + 2. Renk sayısı 4 ile sınırlı (oynanabilir palet).
+    ///
+    ///   1-5    (5)  : çok kolay  — 3×3, 1-2 renk hücresi,   2 renk
+    ///   6-10   (5)  : kolay      — 4×4, 3-4 renk hücresi,   2 renk
+    ///   11-20  (10) : orta-kolay — 4×4, 5-7 renk hücresi,   3 renk
+    ///   21-70  (50) : orta       — 5×5, 8-12 renk hücresi,  3 renk
+    ///   71-85  (15) : orta-zor   — 6×6, 13-18 renk hücresi, 4 renk
+    ///   86-100 (15) : zor        — 7×7, 20-30 renk hücresi, 4 renk
     /// </summary>
     private static LevelDefinition BuildTierDefinition(int idx)
     {
         int level = idx + 1;
 
-        if (level <= 2)  return Make(idx, w: 3, h: 3, min: 1,  max: 2,  colors: 2);
-        if (level <= 4)  return Make(idx, w: 4, h: 4, min: 3,  max: 4,  colors: 2);
-        if (level <= 6)  return Make(idx, w: 4, h: 4, min: 5,  max: 7,  colors: 3);
-        if (level <= 8)  return Make(idx, w: 5, h: 5, min: 8,  max: 10, colors: 3);
-        if (level <= 10) return Make(idx, w: 5, h: 5, min: 11, max: 13, colors: 4);
+        if (level <= 5)   return Make(idx, w: 3, h: 3, min: 1,  max: 2,  colors: 2); // çok kolay
+        if (level <= 10)  return Make(idx, w: 4, h: 4, min: 3,  max: 4,  colors: 2); // kolay
+        if (level <= 20)  return Make(idx, w: 4, h: 4, min: 5,  max: 7,  colors: 3); // orta-kolay
+        if (level <= 70)  return Make(idx, w: 5, h: 5, min: 8,  max: 12, colors: 3); // orta
+        if (level <= 85)  return Make(idx, w: 6, h: 6, min: 13, max: 18, colors: 4); // orta-zor
 
-        return Make(idx, w: 6, h: 6, min: 14, max: 18, colors: 4);
+        return Make(idx, w: 7, h: 7, min: 20, max: 30, colors: 4);                   // zor
     }
 
     private static LevelDefinition Make(int idx, int w, int h, int min, int max, int colors) =>
